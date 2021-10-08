@@ -37,22 +37,6 @@ func (m *Client) mercuryGetProto(url string, result proto.Message) (err error) {
 	return
 }
 
-func (m *Client) GetRootPlaylist(username string) (*Spotify.SelectedListContent, error) {
-	uri := fmt.Sprintf("hm://playlist/user/%s/rootlist", username)
-
-	result := &Spotify.SelectedListContent{}
-	err := m.mercuryGetProto(uri, result)
-	return result, err
-}
-
-func (m *Client) GetPlaylist(id string) (*Spotify.SelectedListContent, error) {
-	uri := fmt.Sprintf("hm://playlist/%s", id)
-
-	result := &Spotify.SelectedListContent{}
-	err := m.mercuryGetProto(uri, result)
-	return result, err
-}
-
 func (m *Client) GetToken(clientId string, scopes string) (*metadata.Token, error) {
 	uri := fmt.Sprintf("hm://keymaster/token/authenticated?client_id=%s&scope=%s", url.QueryEscape(clientId),
 		url.QueryEscape(scopes))
