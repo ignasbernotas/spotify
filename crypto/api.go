@@ -29,37 +29,9 @@ func (m *Client) mercuryGetJson(url string, result interface{}) (err error) {
 	return
 }
 
-func (m *Client) mercuryGetProto(url string, result proto.Message) (err error) {
-	data := m.mercuryGet(url)
-	// ioutil.WriteFile("/tmp/proto.blob", data, 0644)
-	err = proto.Unmarshal(data, result)
-	return
-}
-
-func (m *Client) GetToken(clientId string, scopes string) (*Token, error) {
-	uri := fmt.Sprintf("hm://keymaster/token/authenticated?client_id=%s&scope=%s", url.QueryEscape(clientId),
-		url.QueryEscape(scopes))
-
-	token := &Token{}
-	err := m.mercuryGetJson(uri, token)
-	return token, err
-}
-
-func (m *Client) Search(search string, limit int, country string, username string) (*SearchResponse, error) {
-	v := url.Values{}
-	v.Set("entityVersion", "2")
-	v.Set("limit", fmt.Sprintf("%d", limit))
-	v.Set("imageSize", "large")
-	v.Set("catalogue", "")
-	v.Set("country", country)
-	v.Set("platform", "zelda")
-	v.Set("username", username)
-
-	uri := fmt.Sprintf("hm://searchview/km/v4/search/%s?%s", url.QueryEscape(search), v.Encode())
-
-	result := &SearchResponse{}
-	err := m.mercuryGetJson(uri, result)
-	return result, err
+func (m *Client) mercuryGetProto(url string, result proto.Message) error {
+   data := m.mercuryGet(url)
+   return proto.Unmarshal(data, result)
 }
 
 func (m *Client) Suggest(search string) (*SuggestResult, error) {

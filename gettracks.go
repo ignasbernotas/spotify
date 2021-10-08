@@ -2,7 +2,6 @@ package spotify
 
 import (
    "fmt"
-   //"github.com/89z/spotify/core"
    "os"
    "path"
    "strconv"
@@ -38,6 +37,7 @@ func trackOutputFilename(track *SpotifyTrack, outputDirectory string) string {
 	return path.Join(outputDirectory, strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg")
 }
 
+// NEED THIS
 func downloadTrackId(session *Session, id string) error {
 	track, err := GetTrackFileAndInfo(session, id)
 	if err != nil {

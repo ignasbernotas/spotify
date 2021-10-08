@@ -10,10 +10,11 @@ import (
    "time"
 )
 
+// NEED THIS
 func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error) {
 	track, err := session.Mercury().GetTrack(Base62ToHex(trackID))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get track metadata: %s", err)
+		return nil, fmt.Errorf("failed to get track metadata %v", err)
 	}
 
 	var selectedFile *pb.AudioFile = nil
@@ -23,52 +24,53 @@ func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error
 		}
 	}
 	if selectedFile == nil {
-		return nil, fmt.Errorf("Could not find any files of the song in the specified formats")
+		return nil, fmt.Errorf("could not find any files of the song in the specified formats")
 	}
 
 	// Synchronously load the track
 	audioFile, err := session.Player().LoadTrack(selectedFile, track.GetGid())
 	if err != nil {
-		return nil, fmt.Errorf("Failed to download the track: %s", err)
+		return nil, fmt.Errorf("failed to download the track %v", err)
 	}
 
 	return GetTrackInfo(audioFile, track), nil
 }
 
+// NEED THIS
 func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
-	serializedTrack := &SpotifyTrack{}
-	serializedTrack.AudioFile = audioFile
-	serializedTrack.TrackName = track.GetName()
-	serializedTrack.TrackNumber = track.GetNumber()
-	serializedTrack.TrackDuration = (track.GetDuration() / 1000) // convert ms to seconds
-	serializedTrack.TrackDiscNumber = track.GetDiscNumber()
-
-	album := track.GetAlbum()
-	if album != nil {
-		serializedTrack.Album.Name = album.GetName()
-		serializedTrack.Album.Label = album.GetLabel()
-		serializedTrack.Album.Genre = album.GetGenre()
-		albumDate := album.GetDate()
-		if albumDate != nil {
-			serializedTrack.Album.Date = time.Date(int(albumDate.GetYear()), time.Month(int(albumDate.GetMonth())), int(albumDate.GetDay()), 0, 0, 0, 0, time.UTC)
-		}
-
-		albumArtists := album.GetArtist()
-		if albumArtists != nil {
-			for _, artist := range albumArtists {
-				serializedTrack.Album.ArtistNames = append(serializedTrack.Album.ArtistNames, artist.GetName())
-			}
-		}
-	}
-
-	trackArtists := track.GetArtist()
-	if trackArtists != nil {
-		for _, artist := range trackArtists {
-			serializedTrack.TrackArtistNames = append(serializedTrack.TrackArtistNames, artist.GetName())
-		}
-	}
-
-	return serializedTrack
+   serializedTrack := &SpotifyTrack{}
+   serializedTrack.AudioFile = audioFile
+   serializedTrack.TrackName = track.GetName()
+   serializedTrack.TrackNumber = track.GetNumber()
+   serializedTrack.TrackDuration = (track.GetDuration() / 1000) // convert ms to seconds
+   serializedTrack.TrackDiscNumber = track.GetDiscNumber()
+   album := track.GetAlbum()
+   if album != nil {
+      serializedTrack.Album.Name = album.GetName()
+      serializedTrack.Album.Label = album.GetLabel()
+      serializedTrack.Album.Genre = album.GetGenre()
+      albumDate := album.GetDate()
+      if albumDate != nil {
+         serializedTrack.Album.Date = time.Date(
+            int(albumDate.GetYear()),
+            time.Month(int(albumDate.GetMonth())),
+            int(albumDate.GetDay()), 0, 0, 0, 0, time.UTC,
+         )
+      }
+      albumArtists := album.GetArtist()
+      for _, artist := range albumArtists {
+         serializedTrack.Album.ArtistNames = append(
+            serializedTrack.Album.ArtistNames, artist.GetName(),
+         )
+      }
+   }
+   trackArtists := track.GetArtist()
+   for _, artist := range trackArtists {
+      serializedTrack.TrackArtistNames = append(
+         serializedTrack.TrackArtistNames, artist.GetName(),
+      )
+   }
+   return serializedTrack
 }
 
 /* use these structs because they are much easier to work with than protobuf structs */
