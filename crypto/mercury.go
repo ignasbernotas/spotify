@@ -65,16 +65,6 @@ func CreateMercury(stream PacketStream) *Client {
 	return client
 }
 
-func (m *Client) addChannelSubscriber(uri string, recv chan Response) {
-	chList, ok := m.subscriptions[uri]
-	if !ok {
-		chList = make([]chan Response, 0)
-	}
-
-	chList = append(chList, recv)
-	m.subscriptions[uri] = chList
-}
-
 func (m *Client) Request(req Request, cb Callback) (err error) {
    seq, err := m.internal.request(req)
    if err != nil {

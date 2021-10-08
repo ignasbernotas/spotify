@@ -134,11 +134,6 @@ func (s *SharedKeys) Challenge() []byte {
 	return s.challenge
 }
 
-type connectDeviceMdns struct {
-	Path string
-	Name string
-}
-
 // BlobInfo is the structure holding authentication blob data. The blob is an
 // encoded/encrypted byte array (encoded as base64), holding the encryption
 // keys, the deviceId, and the username.
@@ -150,9 +145,6 @@ type BlobInfo struct {
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
    loginBlob  BlobInfo
-   deviceId   string
-   deviceName string
-   devices     []connectDeviceMdns
 }
 
 // NEED THIS
