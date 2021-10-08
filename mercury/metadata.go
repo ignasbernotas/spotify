@@ -1,4 +1,5 @@
-package metadata
+//package metadata
+package mercury
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package discovery
+package crypto
 
 import (
 	"crypto/sha1"

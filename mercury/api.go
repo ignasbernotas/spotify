@@ -1,12 +1,11 @@
 package mercury
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/metadata"
-	"net/url"
+   "encoding/json"
+   "fmt"
+   "github.com/golang/protobuf/proto"
+   "github.com/89z/spotify/Spotify"
+   "net/url"
 )
 
 func (m *Client) mercuryGet(url string) []byte {
@@ -37,16 +36,16 @@ func (m *Client) mercuryGetProto(url string, result proto.Message) (err error) {
 	return
 }
 
-func (m *Client) GetToken(clientId string, scopes string) (*metadata.Token, error) {
+func (m *Client) GetToken(clientId string, scopes string) (*Token, error) {
 	uri := fmt.Sprintf("hm://keymaster/token/authenticated?client_id=%s&scope=%s", url.QueryEscape(clientId),
 		url.QueryEscape(scopes))
 
-	token := &metadata.Token{}
+	token := &Token{}
 	err := m.mercuryGetJson(uri, token)
 	return token, err
 }
 
-func (m *Client) Search(search string, limit int, country string, username string) (*metadata.SearchResponse, error) {
+func (m *Client) Search(search string, limit int, country string, username string) (*SearchResponse, error) {
 	v := url.Values{}
 	v.Set("entityVersion", "2")
 	v.Set("limit", fmt.Sprintf("%d", limit))
@@ -58,12 +57,12 @@ func (m *Client) Search(search string, limit int, country string, username strin
 
 	uri := fmt.Sprintf("hm://searchview/km/v4/search/%s?%s", url.QueryEscape(search), v.Encode())
 
-	result := &metadata.SearchResponse{}
+	result := &SearchResponse{}
 	err := m.mercuryGetJson(uri, result)
 	return result, err
 }
 
-func (m *Client) Suggest(search string) (*metadata.SuggestResult, error) {
+func (m *Client) Suggest(search string) (*SuggestResult, error) {
 	uri := "hm://searchview/km/v3/suggest/" + url.QueryEscape(search) + "?limit=3&intent=2516516747764520149&sequence=0&catalogue=&country=&locale=&platform=zelda&username="
 	data := m.mercuryGet(uri)
 
@@ -92,20 +91,20 @@ func (m *Client) GetAlbum(id string) (*Spotify.Album, error) {
 }
 
 // new functions
-func (m *Client) GetArtistInfo(id string, username string) (*metadata.DetailPageArtist, error) {
+func (m *Client) GetArtistInfo(id string, username string) (*DetailPageArtist, error) {
 	uri := fmt.Sprintf("hm://artist/v1/%s/desktop?format=json&catalogue=free&locale=en&username=%scat=1", id, username)
 
-	result := &metadata.DetailPageArtist{}
+	result := &DetailPageArtist{}
 	err := m.mercuryGetJson(uri, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
-func (m *Client) GetAlbumInfo(id string, username string) (*metadata.DetailPageGenericRelease, error) {
+func (m *Client) GetAlbumInfo(id string, username string) (*DetailPageGenericRelease, error) {
 	uri := fmt.Sprintf("hm://album/v1/album-app/album/spotify:album:%s/desktop?catalogue=free&locale=en&username=%s", id, username)
 
-	result := &metadata.DetailPageGenericRelease{}
+	result := &DetailPageGenericRelease{}
 	err := m.mercuryGetJson(uri, result)
 	if err != nil {
 		return nil, err
@@ -113,8 +112,8 @@ func (m *Client) GetAlbumInfo(id string, username string) (*metadata.DetailPageG
 	return result, nil
 }
 
-func parseSuggest(body []byte) (*metadata.SuggestResult, error) {
-	result := &metadata.SuggestResult{}
+func parseSuggest(body []byte) (*SuggestResult, error) {
+	result := &SuggestResult{}
 	err := json.Unmarshal(body, result)
 	if err != nil {
 		fmt.Println("err", err)

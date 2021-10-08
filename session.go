@@ -5,7 +5,6 @@ import (
    "fmt"
    "github.com/89z/spotify/Spotify"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/discovery"
    "github.com/89z/spotify/mercury"
    "github.com/89z/spotify/player"
    "github.com/golang/protobuf/proto"
@@ -24,8 +23,7 @@ type Session struct {
 	stream crypto.PacketStream
 	// mercury is the mercury client associated with this session
 	mercury *mercury.Client
-	// discovery is the discovery service used for Spotify Connect devices discovery
-	discovery *discovery.Discovery
+	discovery *crypto.Discovery
 	// player is the player service used to load the audio data
 	player *player.Player
 	tcpCon io.ReadWriter
@@ -50,7 +48,7 @@ func (s *Session) Stream() crypto.PacketStream {
 	return s.stream
 }
 
-func (s *Session) Discovery() *discovery.Discovery {
+func (s *Session) Discovery() *crypto.Discovery {
 	return s.discovery
 }
 
@@ -146,7 +144,7 @@ func setupSession() (*Session, error) {
 	return session, err
 }
 
-func sessionFromDiscovery(d *discovery.Discovery) (*Session, error) {
+func sessionFromDiscovery(d *crypto.Discovery) (*Session, error) {
 	s, err := setupSession()
 	if err != nil {
 		return nil, err
@@ -166,7 +164,7 @@ func sessionFromDiscovery(d *discovery.Discovery) (*Session, error) {
 }
 
 func (s *Session) doConnect() error {
-	apUrl, err := discovery.APResolve()
+	apUrl, err := crypto.APResolve()
 	if err != nil {
 		log.Println("Failed to get ap url", err)
 		return err

@@ -1,4 +1,3 @@
-//package connection
 package crypto
 
 import (

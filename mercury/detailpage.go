@@ -1,4 +1,5 @@
-package metadata
+//package metadata
+package mercury
 
 type DetailPageImage struct {
 	Uri string `json:"uri"`

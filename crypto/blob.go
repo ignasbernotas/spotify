@@ -1,20 +1,19 @@
-package discovery
+package crypto
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/binary"
-	"encoding/json"
-	"errors"
-	"github.com/89z/spotify/crypto"
-	"golang.org/x/crypto/pbkdf2"
-	"log"
-	"math/big"
-	"os"
+   "bytes"
+   "crypto/aes"
+   "crypto/cipher"
+   "crypto/hmac"
+   "crypto/sha1"
+   "encoding/base64"
+   "encoding/binary"
+   "encoding/json"
+   "errors"
+   "golang.org/x/crypto/pbkdf2"
+   "log"
+   "math/big"
+   "os"
 )
 
 // BlobInfo is the structure holding authentication blob data. The blob is an encoded/encrypted byte array (encoded
@@ -44,7 +43,7 @@ func BlobFromFile(path string) (BlobInfo, error) {
 
 // NewBlobInfo creates a new BlobInfo structure with the blob data filled in DecodedBlob field
 func NewBlobInfo(blob64 string, client64 string,
-	keys crypto.PrivateKeys, deviceId string, username string) (BlobInfo, error) {
+	keys PrivateKeys, deviceId string, username string) (BlobInfo, error) {
 
 	partDecoded, err := decodeBlob(blob64, client64, keys)
 	if err != nil {
@@ -61,7 +60,7 @@ func NewBlobInfo(blob64 string, client64 string,
 }
 
 // MakeAuthBlob builds an encoded blob in order to authenticate against Spotify services
-func (b *BlobInfo) MakeAuthBlob(deviceId string, client64 string, dhKeys crypto.PrivateKeys) (string, error) {
+func (b *BlobInfo) MakeAuthBlob(deviceId string, client64 string, dhKeys PrivateKeys) (string, error) {
 	secret := sha1.Sum([]byte(deviceId))
 	key := blobKey(b.Username, secret[:])
 
@@ -101,11 +100,11 @@ func blobKey(username string, secret []byte) []byte {
 	return append(hash[:], length...)
 }
 
-func makeBlob(blobPart []byte, keys crypto.PrivateKeys, publicKey string) string {
+func makeBlob(blobPart []byte, keys PrivateKeys, publicKey string) string {
 	part := []byte(base64.StdEncoding.EncodeToString(blobPart))
 
 	sharedKey := keys.SharedKey(publicKey)
-	iv := crypto.RandomVec(16)
+	iv := RandomVec(16)
 
 	key := sha1.Sum(sharedKey)
 	base_key := key[:16]
@@ -156,7 +155,7 @@ func encryptBlob(blob []byte, key []byte) []byte {
 	return encoded
 }
 
-func decodeBlob(blob64 string, client64 string, keys crypto.PrivateKeys) (string, error) {
+func decodeBlob(blob64 string, client64 string, keys PrivateKeys) (string, error) {
 
 	clientKey, err := base64.StdEncoding.DecodeString(client64)
 	if err != nil {
@@ -171,7 +170,7 @@ func decodeBlob(blob64 string, client64 string, keys crypto.PrivateKeys) (string
 	clientKey_be := new(big.Int)
 	clientKey_be.SetBytes(clientKey)
 
-	sharedKey := crypto.Powm(clientKey_be, keys.PrivateKey(), keys.Prime())
+	sharedKey := Powm(clientKey_be, keys.PrivateKey(), keys.Prime())
 	iv := blobBytes[0:16]
 	encryptedPart := blobBytes[16 : len(blobBytes)-20]
 	ckSum := blobBytes[len(blobBytes)-20:]

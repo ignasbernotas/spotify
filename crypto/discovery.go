@@ -1,11 +1,11 @@
-package discovery
+//package discovery
+package crypto
 
 import (
    "encoding/base64"
    "encoding/json"
    "errors"
    "fmt"
-   "github.com/89z/spotify/crypto"
    "log"
    "net"
    "net/http"
@@ -44,7 +44,7 @@ type connectGetInfo struct {
 
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
-   keys       crypto.PrivateKeys
+   keys       PrivateKeys
    cachePath  string
    loginBlob  BlobInfo
    deviceId   string

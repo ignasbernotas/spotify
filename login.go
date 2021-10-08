@@ -7,7 +7,6 @@ import (
    "fmt"
    "github.com/89z/spotify/Spotify"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/discovery"
    "github.com/golang/protobuf/proto"
    "io/ioutil"
    "log"
@@ -28,7 +27,7 @@ func CoreLogin(username string, password string, deviceName string) (*Session, e
 }
 
 func (s *Session) loginSession(username string, password string, deviceName string) error {
-	s.deviceId = discovery.GenerateDeviceId(deviceName)
+	s.deviceId = crypto.GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err := s.startConnection()
@@ -44,7 +43,7 @@ func CoreLoginSaved(username string, authData []byte, deviceName string) (*Sessi
 	if err != nil {
 		return s, err
 	}
-	s.deviceId = discovery.GenerateDeviceId(deviceName)
+	s.deviceId = crypto.GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err = s.startConnection()
@@ -68,7 +67,7 @@ func loginOAuthToken(accessToken string, deviceName string) (*Session, error) {
 		return s, err
 	}
 
-	s.deviceId = discovery.GenerateDeviceId(deviceName)
+	s.deviceId = crypto.GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err = s.startConnection()
@@ -135,7 +134,7 @@ func (s *Session) handleLogin() (*Spotify.APWelcome, error) {
 	}
 }
 
-func (s *Session) getLoginBlobPacket(blob discovery.BlobInfo) []byte {
+func (s *Session) getLoginBlobPacket(blob crypto.BlobInfo) []byte {
 	data, _ := base64.StdEncoding.DecodeString(blob.DecodedBlob)
 
 	buffer := bytes.NewBuffer(data)
