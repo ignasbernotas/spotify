@@ -2,9 +2,8 @@ package main
 
 import (
 	"flag"
-	// "fmt"
 	"fmt"
-	"github.com/chris124567/spotrip/internal/spotconvenience"
+	"github.com/89z/spotify/internal/spotconvenience"
 	"github.com/librespot-org/librespot-golang/librespot"
 	"github.com/librespot-org/librespot-golang/librespot/core"
 	"log"

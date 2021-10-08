@@ -56,7 +56,6 @@ func downloadTrackId(session *core.Session, id string) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
