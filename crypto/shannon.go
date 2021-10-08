@@ -85,9 +85,10 @@ func (s *shannonStream) WrapWriter(writer io.Writer) {
 }
 
 func (s *shannonStream) Read(p []byte) (n int, err error) {
-	n, err = s.reader.Read(p)
-	p = s.Decrypt(p)
-	return n, err
+   n, err = s.reader.Read(p)
+   //p = s.Decrypt(p)
+   s.Decrypt(p)
+   return n, err
 }
 
 func (s *shannonStream) Write(p []byte) (n int, err error) {

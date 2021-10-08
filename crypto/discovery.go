@@ -3,13 +3,10 @@ package crypto
 import (
    "encoding/base64"
    "encoding/json"
-   "errors"
    "fmt"
-   "log"
    "net/http"
    "net/url"
    "strings"
-   "sync"
 )
 
 // connectInfo stores the information about Spotify Connect connection
@@ -26,13 +23,10 @@ type connectDeviceMdns struct {
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
    keys       PrivateKeys
-   cachePath  string
    loginBlob  BlobInfo
    deviceId   string
    deviceName string
-   httpServer  *http.Server
    devices     []connectDeviceMdns
-   devicesLock sync.RWMutex
 }
 
 func (d *Discovery) DeviceId() string {
@@ -102,34 +96,4 @@ func findCpath(info []string) string {
 		}
 	}
 	return ""
-}
-
-func (d *Discovery) handleAddUser(r *http.Request) error {
-	//already have login info, ignore
-	if d.loginBlob.Username != "" {
-		return nil
-	}
-
-	username := r.FormValue("userName")
-	client64 := r.FormValue("clientKey")
-	blob64 := r.FormValue("blob")
-
-	if username == "" || client64 == "" || blob64 == "" {
-		log.Println("Bad Request, addUser")
-		return errors.New("bad username Request")
-	}
-
-	blob, err := NewBlobInfo(blob64, client64, d.keys,
-		d.deviceId, username)
-	if err != nil {
-		return errors.New("failed to decode blob")
-	}
-
-	err = blob.SaveToFile(d.cachePath)
-	if err != nil {
-		log.Println("failed to cache login info")
-	}
-
-	d.loginBlob = blob
-	return nil
 }

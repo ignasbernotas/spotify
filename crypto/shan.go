@@ -10,15 +10,6 @@ type shn_ctx struct {
 	nbuf  int
 }
 
-/* interface definitions */
-/*
- * FOLD is how many register cycles need to be performed after combining the
- * last byte of key and non-linear feedback, before every byte depends on every
- * byte of the key. This depends on the feedback and nonlinear functions, and
- * on where they are combined into the register. Making it same as the
- * register length is a safe and conservative choice.
- */
-
 const N int = 16
 
 const FOLD int = 16
@@ -91,19 +82,6 @@ func cycle(c *shn_ctx) {
 	c.sbuf = t ^ c.R[8] ^ c.R[12]
 }
 
-/* The Shannon MAC function is modelled after the concepts of Phelix and SHA.
- * Basically, words to be accumulated in the MAC are incorporated in t`wo
- * different ways:
- * 1. They are incorporated into the stream cipher register at a place
- *    where they will immediately have a nonlinear effect on the state
- * 2. They are incorporated into bit-parallel CRC-16 registers; the
- *    contents of these registers will be used in MAC finalization.
- */
-
-/* Accumulate a CRC of input words, later to be fed into MAC.
- * This is actually 32 parallel CRC-16s, using the IBM CRC-16
- * polynomial x^16 + x^15 + x^2 + 1.
- */
 func crcfunc(c *shn_ctx, i uint32) {
 	var t uint32
 	var j int
@@ -286,54 +264,6 @@ func shn_stream(c *shn_ctx, buf []byte, nbytes int) {
 			buf[0] ^= byte(c.sbuf & 0xFF)
 			buf = buf[1:]
 			c.sbuf >>= 8
-			c.nbuf -= 8
-			nbytes--
-		}
-	}
-}
-
-/* accumulate words into MAC without encryption
- * Note that plaintext is accumulated for MAC.
- */
-func shn_maconly(c *shn_ctx, buf []byte, nbytes int) {
-	var endbuf []byte
-
-	/* Handle any previously buffered bytes */
-	if c.nbuf != 0 {
-		for c.nbuf != 0 && nbytes != 0 {
-			c.mbuf ^= uint32(buf[0]) << uint(32-c.nbuf)
-			buf = buf[1:]
-			c.nbuf -= 8
-			nbytes--
-		}
-
-		if c.nbuf != 0 { /* not a whole word yet */
-			return
-		}
-
-		/* LFSR already cycled */
-		macfunc(c, c.mbuf)
-	}
-
-	/* Handle whole words */
-	endbuf = buf[uint32(nbytes)&^(uint32(0x03)):]
-
-	for -cap(buf) < -cap(endbuf) {
-		cycle(c)
-		macfunc(c, byte2word(buf))
-		buf = buf[4:]
-	}
-
-	/* Handle any trailing bytes */
-	nbytes &= 0x03
-
-	if nbytes != 0 {
-		cycle(c)
-		c.mbuf = 0
-		c.nbuf = 32
-		for c.nbuf != 0 && nbytes != 0 {
-			c.mbuf ^= uint32(buf[0]) << uint(32-c.nbuf)
-			buf = buf[1:]
 			c.nbuf -= 8
 			nbytes--
 		}
