@@ -59,15 +59,15 @@ func downloadTrackId(session *Session, id string) error {
 	return nil
 }
 
+// NEED THIS
 func DownloadTrackList(session *Session, idList []string) error {
-	for _, id := range idList {
-		err := downloadTrackId(session, id)
-		if err != nil {
-			return fmt.Errorf("Failed to download track [%s]: %+v", id, err)
-		}
-	}
-	return nil
-
+   for _, id := range idList {
+      err := downloadTrackId(session, id)
+      if err != nil {
+         return fmt.Errorf("failed to download track %q %+v", id, err)
+      }
+   }
+   return nil
 }
 func GetArtistTracks(session *Session, id string) (*[]string, error) {
 	var albumUris []string

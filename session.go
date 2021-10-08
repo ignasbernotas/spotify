@@ -136,25 +136,6 @@ func setupSession() (*Session, error) {
 	return session, err
 }
 
-func sessionFromDiscovery(d *crypto.Discovery) (*Session, error) {
-	s, err := setupSession()
-	if err != nil {
-		return nil, err
-	}
-
-	s.discovery = d
-	s.deviceId = d.DeviceId()
-	s.deviceName = d.DeviceName()
-
-	err = s.startConnection()
-	if err != nil {
-		return s, err
-	}
-
-	loginPacket := s.getLoginBlobPacket(d.LoginBlob())
-	return s, s.doLogin(loginPacket, d.LoginBlob().Username)
-}
-
 func (s *Session) doConnect() error {
 	apUrl, err := APResolve()
 	if err != nil {
@@ -274,34 +255,6 @@ func (s *Session) handle(cmd uint8, data []byte) {
 	default:
 		fmt.Printf("Unhandled cmd 0x%x\n", cmd)
 	}
-}
-
-func (s *Session) poll() {
-	cmd, data, err := s.stream.RecvPacket()
-	if err != nil {
-		log.Fatal("poll error", err)
-	}
-	s.handle(cmd, data)
-}
-
-func readInt(b *bytes.Buffer) uint32 {
-	c, _ := b.ReadByte()
-	lo := uint32(c)
-	if lo&0x80 == 0 {
-		return lo
-	}
-
-	c2, _ := b.ReadByte()
-	hi := uint32(c2)
-	return lo&0x7f | hi<<7
-}
-
-func readBytes(b *bytes.Buffer) []byte {
-	length := readInt(b)
-	data := make([]byte, length)
-	b.Read(data)
-
-	return data
 }
 
 func makeHelloMessage(publicKey []byte, nonce []byte) []byte {

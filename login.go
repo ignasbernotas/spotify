@@ -1,8 +1,6 @@
 package spotify
 
 import (
-   "bytes"
-   "encoding/base64"
    "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
@@ -131,21 +129,6 @@ func (s *Session) handleLogin() (*pb.APWelcome, error) {
 	} else {
 		return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
 	}
-}
-
-func (s *Session) getLoginBlobPacket(blob crypto.BlobInfo) []byte {
-	data, _ := base64.StdEncoding.DecodeString(blob.DecodedBlob)
-
-	buffer := bytes.NewBuffer(data)
-	buffer.ReadByte()
-	readBytes(buffer)
-	buffer.ReadByte()
-	authNum := readInt(buffer)
-	authType := pb.AuthenticationType(authNum)
-	buffer.ReadByte()
-	authData := readBytes(buffer)
-
-	return makeLoginBlobPacket(blob.Username, authData, &authType, s.deviceId)
 }
 
 func makeLoginPasswordPacket(username string, password string, deviceId string) []byte {
