@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/connection"
+	"github.com/89z/spotify/connection"
 	"io"
 	"sync"
 )

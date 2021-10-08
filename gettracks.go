@@ -2,7 +2,7 @@ package spotify
 
 import (
 	"fmt"
-	"github.com/89z/spotify/librespot/core"
+	"github.com/89z/spotify/core"
 	"os"
 	"path"
 	"strconv"

@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/connection"
-	"github.com/89z/spotify/librespot/mercury"
+	"github.com/89z/spotify/connection"
+	"github.com/89z/spotify/mercury"
 	"log"
 	"sync"
 )

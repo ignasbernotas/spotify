@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/connection"
+	"github.com/89z/spotify/connection"
 	"io"
 	"math"
 	"sync"

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/core"
-	"github.com/89z/spotify/librespot/mercury"
-	"github.com/89z/spotify/librespot/utils"
+	"github.com/89z/spotify/core"
+	"github.com/89z/spotify/mercury"
+	"github.com/89z/spotify/utils"
 	"strings"
 	"sync"
 )

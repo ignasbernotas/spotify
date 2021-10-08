@@ -10,12 +10,12 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/connection"
-	"github.com/89z/spotify/librespot/crypto"
-	"github.com/89z/spotify/librespot/discovery"
-	"github.com/89z/spotify/librespot/mercury"
-	"github.com/89z/spotify/librespot/player"
-	"github.com/89z/spotify/librespot/utils"
+	"github.com/89z/spotify/connection"
+	"github.com/89z/spotify/crypto"
+	"github.com/89z/spotify/discovery"
+	"github.com/89z/spotify/mercury"
+	"github.com/89z/spotify/player"
+	"github.com/89z/spotify/utils"
 )
 
 // Session represents an active Spotify connection

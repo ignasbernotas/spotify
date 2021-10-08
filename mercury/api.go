@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/librespot/metadata"
+	"github.com/89z/spotify/metadata"
 	"net/url"
 )
 

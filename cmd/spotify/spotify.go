@@ -4,8 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/89z/spotify"
-	"github.com/89z/spotify/librespot"
-	"github.com/89z/spotify/librespot/core"
+	"github.com/89z/spotify/core"
 	"log"
 	"strings"
 )
@@ -41,7 +40,7 @@ func main() {
 		log.Fatal("Please specify a username and password")
 	}
 
-	session, err = librespot.Login(*username, *password, "librespot")
+	session, err = spotify.Login(*username, *password, "librespot")
 	if err != nil {
 		log.Fatalf("Failed to login: %+v", err)
 	}
