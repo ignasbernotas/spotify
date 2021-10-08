@@ -11,16 +11,12 @@ import (
 )
 
 type Player struct {
-	stream   PacketStream
-	mercury  *Client
-	seq      uint32
-	audioKey []byte
-
-	chanLock    sync.Mutex
-	seqChanLock sync.Mutex
-	channels    map[uint16]*Channel
-	seqChans    sync.Map
-	nextChan    uint16
+   chanLock    sync.Mutex
+   channels    map[uint16]*Channel
+   mercury  *Client
+   nextChan    uint16
+   seqChans    sync.Map
+   stream   PacketStream
 }
 
 func CreatePlayer(conn PacketStream, client *Client) *Player {

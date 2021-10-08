@@ -199,6 +199,9 @@ func encodeRequest(seq []byte, req Request) ([]byte, error) {
 	}
 
 	headerData, err := proto.Marshal(header)
+	if err != nil {
+		return nil, err
+	}
 	err = binary.Write(buf, binary.BigEndian, uint16(len(headerData)))
 	if err != nil {
 		return nil, err
@@ -282,16 +285,11 @@ func (m *Internal) parseResponse(cmd uint8, reader io.Reader) (response *Respons
 		fmt.Println("error handling response", err)
 		return
 	}
-
 	seqKey := string(seq)
 	pending, ok := m.pending[seqKey]
-
 	if !ok && cmd == 0xb5 {
 		pending = Pending{}
-	} else if !ok {
-		//log.Print("ignoring seq ", SeqKey)
 	}
-
 	for i := uint16(0); i < count; i++ {
 		part, err := parsePart(reader)
 		if err != nil {
