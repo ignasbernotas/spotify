@@ -206,28 +206,3 @@ func (m *Client) GetAlbumInfo(id string, username string) (*DetailPageGenericRel
 	}
 	return result, nil
 }
-
-func parseSuggest(body []byte) (*SuggestResult, error) {
-	result := &SuggestResult{}
-	err := json.Unmarshal(body, result)
-	if err != nil {
-		fmt.Println("err", err)
-	}
-
-	for _, s := range result.Sections {
-		switch s.Typ {
-		case "top-results":
-			err = json.Unmarshal(s.RawItems, &result.TopHits)
-		case "album-results":
-			err = json.Unmarshal(s.RawItems, &result.Albums)
-		case "artist-results":
-			err = json.Unmarshal(s.RawItems, &result.Artists)
-		case "track-results":
-			err = json.Unmarshal(s.RawItems, &result.Tracks)
-		}
-		if err != nil {
-			return nil, err
-		}
-	}
-	return result, nil
-}

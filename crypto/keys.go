@@ -7,8 +7,6 @@ import (
    "encoding/base64"
    "log"
    "math/big"
-   "net/url"
-   "strings"
 )
 
 type PrivateKeys struct {
@@ -146,13 +144,6 @@ func (s *SharedKeys) Challenge() []byte {
 	return s.challenge
 }
 
-
-// connectInfo stores the information about Spotify Connect connection
-type connectInfo struct {
-	DeviceID  string `json:"deviceID"`
-	PublicKey string `json:"publicKey"`
-}
-
 type connectDeviceMdns struct {
 	Path string
 	Name string
@@ -160,7 +151,6 @@ type connectDeviceMdns struct {
 
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
-   keys       PrivateKeys
    loginBlob  BlobInfo
    deviceId   string
    deviceName string
@@ -182,24 +172,4 @@ func (d *Discovery) LoginBlob() BlobInfo {
 func (d *Discovery) Devices() []connectDeviceMdns {
 	res := make([]connectDeviceMdns, 0, len(d.devices))
 	return append(res, d.devices...)
-}
-
-func makeAddUserRequest(username string, blob string, key string, deviceId string, deviceName string) url.Values {
-	v := url.Values{}
-	v.Set("action", "addUser")
-	v.Add("userName", username)
-	v.Add("blob", blob)
-	v.Add("clientKey", key)
-	v.Add("deviceId", deviceId)
-	v.Add("deviceName", deviceName)
-	return v
-}
-
-func findCpath(info []string) string {
-	for _, i := range info {
-		if strings.Contains(i, "CPath") {
-			return strings.Split(i, "=")[1]
-		}
-	}
-	return ""
 }

@@ -105,11 +105,6 @@ func saveReaderToNewFile(reader io.Reader, fileName string) error {
 	return nil
 }
 
-func getLastSplit(str string, delimiter string) string {
-	str_split := strings.Split(str, delimiter)
-	return str_split[len(str_split)-1]
-}
-
 func NiceJsonFormat(object interface{}) string {
 	jsonBytes, err := json.MarshalIndent(object, "", "    ")
 	if err != nil {
@@ -118,11 +113,6 @@ func NiceJsonFormat(object interface{}) string {
 		return string(jsonBytes)
 	}
 }
-
-func removeSpotifyUriPrefix(uri string) string {
-	return getLastSplit(uri, ":")
-}
-
 
 const baseOutputDirectory string = "output"
 
