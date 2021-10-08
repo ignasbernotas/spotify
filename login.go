@@ -27,7 +27,7 @@ func CoreLogin(username string, password string, deviceName string) (*Session, e
 }
 
 func (s *Session) loginSession(username string, password string, deviceName string) error {
-	s.deviceId = crypto.GenerateDeviceId(deviceName)
+	s.deviceId = GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err := s.startConnection()
@@ -43,7 +43,7 @@ func CoreLoginSaved(username string, authData []byte, deviceName string) (*Sessi
 	if err != nil {
 		return s, err
 	}
-	s.deviceId = crypto.GenerateDeviceId(deviceName)
+	s.deviceId = GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err = s.startConnection()
@@ -67,7 +67,7 @@ func loginOAuthToken(accessToken string, deviceName string) (*Session, error) {
 		return s, err
 	}
 
-	s.deviceId = crypto.GenerateDeviceId(deviceName)
+	s.deviceId = GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err = s.startConnection()

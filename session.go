@@ -156,7 +156,7 @@ func sessionFromDiscovery(d *crypto.Discovery) (*Session, error) {
 }
 
 func (s *Session) doConnect() error {
-	apUrl, err := crypto.APResolve()
+	apUrl, err := APResolve()
 	if err != nil {
 		log.Println("Failed to get ap url", err)
 		return err

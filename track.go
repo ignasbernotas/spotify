@@ -12,7 +12,7 @@ import (
 )
 
 func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error) {
-	track, err := session.Mercury().GetTrack(crypto.Base62ToHex(trackID))
+	track, err := session.Mercury().GetTrack(Base62ToHex(trackID))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get track metadata: %s", err)
 	}

@@ -1,4 +1,5 @@
-package crypto
+//package crypto
+package spotify
 
 import (
 	"crypto/sha1"

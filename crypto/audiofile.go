@@ -41,10 +41,6 @@ type AudioFile struct {
 	chunksLoading  bool
 }
 
-func newAudioFile(file *pb.AudioFile, player *Player) *AudioFile {
-	return newAudioFileWithIdAndFormat(file.GetFileId(), file.GetFormat(), player)
-}
-
 func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *Player) *AudioFile {
 	return &AudioFile{
 		player:        player,

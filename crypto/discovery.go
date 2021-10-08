@@ -6,7 +6,6 @@ import (
    "errors"
    "fmt"
    "log"
-   "net"
    "net/http"
    "net/url"
    "strings"
@@ -24,23 +23,6 @@ type connectDeviceMdns struct {
 	Name string
 }
 
-// connectGetInfo stores the information about a Spotify Connect information Request
-type connectGetInfo struct {
-	Status           int    `json:"status"`
-	StatusError      string `json:"statusError"`
-	SpotifyError     int    `json:"spotifyError"`
-	Version          string `json:"version"`
-	DeviceID         string `json:"deviceID"`
-	RemoteName       string `json:"remoteName"`
-	ActiveUser       string `json:"activeUser"`
-	PublicKey        string `json:"publicKey"`
-	DeviceType       string `json:"deviceType"`
-	LibraryVersion   string `json:"libraryVersion"`
-	AccountReq       string `json:"accountReq"`
-	BrandDisplayName string `json:"brandDisplayName"`
-	ModelDisplayName string `json:"modelDisplayName"`
-}
-
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
    keys       PrivateKeys
@@ -51,25 +33,6 @@ type Discovery struct {
    httpServer  *http.Server
    devices     []connectDeviceMdns
    devicesLock sync.RWMutex
-}
-
-// makeConnectGetInfo builds a connectGetInfo structure with the provided values
-func makeConnectGetInfo(deviceId string, deviceName string, publicKey string) connectGetInfo {
-	return connectGetInfo{
-		Status:           101,
-		StatusError:      "ERROR-OK",
-		SpotifyError:     0,
-		Version:          "1.3.0",
-		DeviceID:         deviceId,
-		RemoteName:       deviceName,
-		ActiveUser:       "",
-		PublicKey:        publicKey,
-		DeviceType:       "UNKNOWN",
-		LibraryVersion:   "0.1.0",
-		AccountReq:       "PREMIUM",
-		BrandDisplayName: "librespot",
-		ModelDisplayName: "librespot",
-	}
 }
 
 func (d *Discovery) DeviceId() string {
@@ -169,36 +132,4 @@ func (d *Discovery) handleAddUser(r *http.Request) error {
 
 	d.loginBlob = blob
 	return nil
-}
-
-func (d *Discovery) startHttp(done chan int, l net.Listener) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		action := r.FormValue("action")
-		fmt.Println("got Request: ", action)
-		switch {
-		case "connectGetInfo" == action || "resetUsers" == action:
-			client64 := base64.StdEncoding.EncodeToString(d.keys.PubKey())
-			info := makeConnectGetInfo(d.deviceId, d.deviceName, client64)
-
-			js, err := json.Marshal(info)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(js)
-		case "addUser" == action:
-			err := d.handleAddUser(r)
-			if err == nil {
-				done <- 1
-			}
-		}
-	})
-
-	d.httpServer = &http.Server{}
-	err := d.httpServer.Serve(l)
-	if err != nil {
-		fmt.Println("got an error", err)
-	}
 }
