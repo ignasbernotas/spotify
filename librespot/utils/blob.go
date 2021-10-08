@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/librespot-org/librespot-golang/librespot/crypto"
+	"github.com/89z/spotify/librespot/crypto"
 	"golang.org/x/crypto/pbkdf2"
 	"log"
 	"math/big"

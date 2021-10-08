@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/89z/spotify"
-	"github.com/librespot-org/librespot-golang/librespot"
-	"github.com/librespot-org/librespot-golang/librespot/core"
+	"github.com/89z/spotify/librespot"
+	"github.com/89z/spotify/librespot/core"
 	"log"
 	"strings"
 )

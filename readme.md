@@ -1,11 +1,9 @@
 # Spotify
 
-This is an open source Spotify song ripping application written in Golang
-(using a modified version of
-[Librespot](http://github.com/librespot-org/librespot-golang)).  It works with
-both Spotify free and premium accounts.  It can download individual tracks,
-albums, or entire artist discographies.   It downloads the audio files served
-by Spotify's servers and does not work by recording audio outputs.
+This is an open source Spotify song ripping application written in Golang. It
+works with both Spotify free and premium accounts.  It can download individual
+tracks, albums, or entire artist discographies.   It downloads the audio files
+served by Spotify's servers and does not work by recording audio outputs.
 
 ## Note
 
@@ -41,10 +39,3 @@ https://open.spotify.com/track/4qOPuARt2HNHAOlgXBezoT
 ~~~
 
 `4qOPuARt2HNHAOlgXBezoT` would be the track ID.
-
-## Credits
-
-Thanks to [Librespot](https://github.com/librespot-org) for reverse engineering
-the Spotify protocol and releasing their
-[tools](https://github.com/librespot-org/spotify-analyze) for free. They are
-the ones that make third party Spotify clients possible.

@@ -2,7 +2,7 @@ package spotify
 
 import (
 	"fmt"
-	"github.com/librespot-org/librespot-golang/librespot/core"
+	"github.com/89z/spotify/librespot/core"
 	"os"
 	"path"
 	"strconv"
