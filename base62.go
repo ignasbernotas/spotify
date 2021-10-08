@@ -63,9 +63,8 @@ func ConvertTo62(raw []byte) string {
 }
 
 func Base62ToHex(b62 string) string {
-	return fmt.Sprintf("%x", Convert62(b62))
+   return fmt.Sprintf("%x", Convert62(b62))
 }
-
 
 var EMPTY_HTTP_RESPONSE = &http.Response{}
 
@@ -88,13 +87,10 @@ func HttpGetHeaders(link string, headers map[string]string) (*http.Response, err
 	return response, nil
 }
 
-
 func GenerateDeviceId(name string) string {
-	hash := sha1.Sum([]byte(name))
-	hash64 := base64.StdEncoding.EncodeToString(hash[:])
-	return hash64
+   hash := sha1.Sum([]byte(name))
+   return base64.StdEncoding.EncodeToString(hash[:])
 }
-
 
 const kAPEndpoint = "https://apresolve.spotify.com"
 

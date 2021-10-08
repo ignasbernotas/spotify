@@ -27,15 +27,6 @@ spotify --username example@example.com --password password `
 ## Additional Note on Search
 
 To prevent yourself from generating a "suspicious" amount of logins from this
-tool, you may want to use the search interface available at
-[https://open.spotify.com/search](https://open.spotify.com/search).  Simply
-right click the album, track, or artist you wish to download and press "Copy
-Song Link." 
-
-The ID follows the last slash of the URL, for instance, in:
-
-~~~
-https://open.spotify.com/track/4qOPuARt2HNHAOlgXBezoT
-~~~
-
-`4qOPuARt2HNHAOlgXBezoT` would be the track ID.
+tool, you may want to use the search interface available at Spotify. Simply
+right click the album, track, or artist you wish to download and click Share,
+Copy Song Link.
