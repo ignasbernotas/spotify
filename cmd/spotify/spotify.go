@@ -1,12 +1,11 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"github.com/89z/spotify"
-	"github.com/89z/spotify/core"
-	"log"
-	"strings"
+   "flag"
+   "fmt"
+   "github.com/89z/spotify"
+   "log"
+   "strings"
 )
 
 const EMPTY_STIRNG string = ""
@@ -24,7 +23,7 @@ func stringListCleanup(strList []string) []string {
 }
 
 func main() {
-	var session *core.Session
+	var session *spotify.Session
 	var err error
 
 	username := flag.String("username", EMPTY_STIRNG, "Username of the spotify account. Required.")

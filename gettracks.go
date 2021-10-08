@@ -1,12 +1,12 @@
 package spotify
 
 import (
-	"fmt"
-	"github.com/89z/spotify/core"
-	"os"
-	"path"
-	"strconv"
-	"strings"
+   "fmt"
+   //"github.com/89z/spotify/core"
+   "os"
+   "path"
+   "strconv"
+   "strings"
 )
 
 const baseOutputDirectory string = "output"
@@ -38,7 +38,7 @@ func trackOutputFilename(track *SpotifyTrack, outputDirectory string) string {
 	return path.Join(outputDirectory, strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg")
 }
 
-func downloadTrackId(session *core.Session, id string) error {
+func downloadTrackId(session *Session, id string) error {
 	track, err := GetTrackFileAndInfo(session, id)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func downloadTrackId(session *core.Session, id string) error {
 	return nil
 }
 
-func DownloadTrackList(session *core.Session, idList []string) error {
+func DownloadTrackList(session *Session, idList []string) error {
 	for _, id := range idList {
 		err := downloadTrackId(session, id)
 		if err != nil {
@@ -69,7 +69,7 @@ func DownloadTrackList(session *core.Session, idList []string) error {
 	return nil
 
 }
-func GetArtistTracks(session *core.Session, id string) (*[]string, error) {
+func GetArtistTracks(session *Session, id string) (*[]string, error) {
 	var albumUris []string
 	var trackIds []string
 
@@ -100,7 +100,7 @@ func GetArtistTracks(session *core.Session, id string) (*[]string, error) {
 	return &trackIds, err
 }
 
-func GetAlbumTracks(session *core.Session, id string) (*[]string, error) {
+func GetAlbumTracks(session *Session, id string) (*[]string, error) {
 	var trackUris []string
 
 	response, err := session.Mercury().GetAlbumInfo(id, session.Username())

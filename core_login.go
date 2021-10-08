@@ -1,4 +1,5 @@
-package core
+//package core
+package spotify
 
 import (
 	"bytes"
@@ -18,8 +19,7 @@ import (
 var Version = "master"
 var BuildID = "dev"
 
-// Login to Spotify using username and password
-func Login(username string, password string, deviceName string) (*Session, error) {
+func CoreLogin(username string, password string, deviceName string) (*Session, error) {
 	s, err := setupSession()
 	if err != nil {
 		return s, err
@@ -40,8 +40,7 @@ func (s *Session) loginSession(username string, password string, deviceName stri
 	return s.doLogin(loginPacket, username)
 }
 
-// Login to Spotify using an existing authData blob
-func LoginSaved(username string, authData []byte, deviceName string) (*Session, error) {
+func CoreLoginSaved(username string, authData []byte, deviceName string) (*Session, error) {
 	s, err := setupSession()
 	if err != nil {
 		return s, err
@@ -59,8 +58,7 @@ func LoginSaved(username string, authData []byte, deviceName string) (*Session, 
 	return s, s.doLogin(packet, username)
 }
 
-// Login to Spotify using the OAuth method
-func LoginOAuth(deviceName string, clientId string, clientSecret string) (*Session, error) {
+func CoreLoginOAuth(deviceName string, clientId string, clientSecret string) (*Session, error) {
 	token := getOAuthToken(clientId, clientSecret)
 	return loginOAuthToken(token.AccessToken, deviceName)
 }

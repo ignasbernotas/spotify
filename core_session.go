@@ -1,4 +1,5 @@
-package core
+//package core
+package spotify
 
 import (
 	"bytes"

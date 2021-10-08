@@ -1,19 +1,18 @@
 package spotify
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/core"
-	"github.com/89z/spotify/metadata"
-	"github.com/89z/spotify/utils"
-	"io"
-	"os"
-	"strings"
-	"time"
+   "encoding/json"
+   "fmt"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/metadata"
+   "github.com/89z/spotify/utils"
+   "io"
+   "os"
+   "strings"
+   "time"
 )
 
-func GetTrackFileAndInfo(session *core.Session, trackID string) (*SpotifyTrack, error) {
+func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error) {
 	// Get the track metadata: it holds information about which files and encodings are available
 	track, err := session.Mercury().GetTrack(utils.Base62ToHex(trackID))
 	if err != nil {
@@ -128,7 +127,7 @@ func removeSpotifyUriPrefix(uri string) string {
 	return getLastSplit(uri, ":")
 }
 
-func Search(session *core.Session, query string) (*metadata.SearchResult, error) {
+func Search(session *Session, query string) (*metadata.SearchResult, error) {
 	response, err := session.Mercury().Search(query, 12, session.Country(), session.Username())
 
 	if err != nil {
