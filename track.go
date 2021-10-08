@@ -4,7 +4,6 @@ import (
    "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
-   "github.com/89z/spotify/crypto"
    "io"
    "os"
    "strings"
@@ -72,7 +71,6 @@ func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
 	return serializedTrack
 }
 
-
 /* use these structs because they are much easier to work with than protobuf structs */
 type SpotifyAlbum struct {
 	Name        string
@@ -91,9 +89,6 @@ type SpotifyTrack struct {
 	TrackArtistNames []string
 	Album            SpotifyAlbum
 }
-
-const delimeter string = "; "
-
 
 func saveReaderToNewFile(reader io.Reader, fileName string) error {
 	newFile, err := os.Create(fileName)
@@ -120,44 +115,6 @@ func NiceJsonFormat(object interface{}) string {
 	}
 }
 
-
 func removeSpotifyUriPrefix(uri string) string {
 	return getLastSplit(uri, ":")
-}
-
-func Search(session *Session, query string) (*crypto.SearchResult, error) {
-	response, err := session.Mercury().Search(query, 12, session.Country(), session.Username())
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to search:", err)
-	}
-
-	results := response.Results
-	if results.Error != nil {
-		return nil, fmt.Errorf("Search result error:", results.Error)
-	}
-
-	for _, result := range results.Artists.Hits {
-		fmt.Printf("Artist: %s (%s)\n", result.Name, removeSpotifyUriPrefix(result.Uri))
-	}
-	fmt.Printf("\n")
-	for _, result := range results.Albums.Hits {
-		artistList := []string{}
-		for _, artist := range result.Artists {
-			artistList = append(artistList, artist.Name)
-		}
-
-		fmt.Printf("Album: %s - %s (%s)\n", strings.Join(artistList, ", "), result.Name, removeSpotifyUriPrefix(result.Uri))
-	}
-	fmt.Printf("\n")
-	for _, result := range results.Tracks.Hits {
-		artistList := []string{}
-		for _, artist := range result.Artists {
-			artistList = append(artistList, artist.Name)
-		}
-
-		fmt.Printf("Track: %s - %s (%s)\n", strings.Join(artistList, ", "), result.Name, removeSpotifyUriPrefix(result.Uri))
-	}
-
-	return &results, nil
 }
