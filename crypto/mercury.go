@@ -52,6 +52,7 @@ type Connection interface {
 	Handle(cmd uint8, reader io.Reader) (err error)
 }
 
+// NEED THIS
 func CreateMercury(stream PacketStream) *Client {
 	client := &Client{
 		callbacks:     make(map[string]Callback),
@@ -62,27 +63,6 @@ func CreateMercury(stream PacketStream) *Client {
 		},
 	}
 	return client
-}
-
-// Subscribe subscribes the specified receiving channel to the specified URI, and calls the callback function
-// whenever there's an event happening.
-func (m *Client) Subscribe(uri string, recv chan Response, cb Callback) error {
-	m.addChannelSubscriber(uri, recv)
-	err := m.Request(Request{
-		Method: "SUB",
-		Uri:    uri,
-	}, func(response Response) {
-		for _, part := range response.Payload {
-			sub := &pb.Subscription{}
-			err := proto.Unmarshal(part, sub)
-			if err == nil && *sub.Uri != uri {
-				m.addChannelSubscriber(*sub.Uri, recv)
-			}
-		}
-		cb(response)
-	})
-
-	return err
 }
 
 func (m *Client) addChannelSubscriber(uri string, recv chan Response) {
@@ -96,28 +76,19 @@ func (m *Client) addChannelSubscriber(uri string, recv chan Response) {
 }
 
 func (m *Client) Request(req Request, cb Callback) (err error) {
-	seq, err := m.internal.request(req)
-	if err != nil {
-		// Call the callback with a 500 error-code so that the request doesn't remain pending in case of error
-		if cb != nil {
-			cb(Response{
-				StatusCode: 500,
-			})
-		}
-
-		return err
-	}
-
-	m.cbMu.Lock()
-	m.callbacks[string(seq)] = cb
-	m.cbMu.Unlock()
-
-	return nil
-}
-
-func (m *Client) NextSeq() []byte {
-	_, seq := m.internal.NextSeq()
-	return seq
+   seq, err := m.internal.request(req)
+   if err != nil {
+      // Call the callback with a 500 error-code so that the request doesn't
+      // remain pending in case of error
+      if cb != nil {
+         cb(Response{StatusCode: 500})
+      }
+      return err
+   }
+   m.cbMu.Lock()
+   m.callbacks[string(seq)] = cb
+   m.cbMu.Unlock()
+   return nil
 }
 
 func (m *Client) NextSeqWithInt() (uint32, []byte) {
