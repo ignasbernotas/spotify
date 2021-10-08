@@ -1,4 +1,4 @@
-package mercury
+package crypto
 
 import (
    "bytes"
@@ -6,7 +6,6 @@ import (
    "fmt"
    "github.com/golang/protobuf/proto"
    "github.com/89z/spotify/Spotify"
-   "github.com/89z/spotify/crypto"
    "io"
    "sync"
 )
@@ -41,7 +40,7 @@ type Internal struct {
 	seqLock sync.Mutex
 	nextSeq uint32
 	pending map[string]Pending
-	stream  crypto.PacketStream
+	stream  PacketStream
 }
 
 type Client struct {
@@ -57,7 +56,7 @@ type Connection interface {
 	Handle(cmd uint8, reader io.Reader) (err error)
 }
 
-func CreateMercury(stream crypto.PacketStream) *Client {
+func CreateMercury(stream PacketStream) *Client {
 	client := &Client{
 		callbacks:     make(map[string]Callback),
 		subscriptions: make(map[string][]chan Response),

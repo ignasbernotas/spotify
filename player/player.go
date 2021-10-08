@@ -6,14 +6,13 @@ import (
    "fmt"
    "github.com/89z/spotify/Spotify"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/mercury"
    "log"
    "sync"
 )
 
 type Player struct {
 	stream   crypto.PacketStream
-	mercury  *mercury.Client
+	mercury  *crypto.Client
 	seq      uint32
 	audioKey []byte
 
@@ -24,7 +23,7 @@ type Player struct {
 	nextChan    uint16
 }
 
-func CreatePlayer(conn crypto.PacketStream, client *mercury.Client) *Player {
+func CreatePlayer(conn crypto.PacketStream, client *crypto.Client) *Player {
 	return &Player{
 		stream:   conn,
 		mercury:  client,

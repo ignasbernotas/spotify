@@ -1,5 +1,4 @@
-//package metadata
-package mercury
+package crypto
 
 import (
 	"encoding/json"

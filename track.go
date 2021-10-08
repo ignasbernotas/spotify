@@ -4,7 +4,6 @@ import (
    "encoding/json"
    "fmt"
    "github.com/89z/spotify/Spotify"
-   "github.com/89z/spotify/mercury"
    "github.com/89z/spotify/crypto"
    "io"
    "os"
@@ -126,7 +125,7 @@ func removeSpotifyUriPrefix(uri string) string {
 	return getLastSplit(uri, ":")
 }
 
-func Search(session *Session, query string) (*mercury.SearchResult, error) {
+func Search(session *Session, query string) (*crypto.SearchResult, error) {
 	response, err := session.Mercury().Search(query, 12, session.Country(), session.Username())
 
 	if err != nil {

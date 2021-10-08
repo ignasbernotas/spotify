@@ -1,4 +1,3 @@
-//package discovery
 package crypto
 
 import (

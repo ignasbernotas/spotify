@@ -5,7 +5,6 @@ import (
    "fmt"
    "github.com/89z/spotify/Spotify"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/mercury"
    "github.com/89z/spotify/player"
    "github.com/golang/protobuf/proto"
    "io"
@@ -16,13 +15,12 @@ import (
 
 type Session struct {
 	/// Constructor references
-	mercuryConstructor func(conn crypto.PacketStream) *mercury.Client
+	mercuryConstructor func(conn crypto.PacketStream) *crypto.Client
 	shannonConstructor func(keys crypto.SharedKeys, conn crypto.PlainConnection) crypto.PacketStream
 
 	/// Managers and helpers
 	stream crypto.PacketStream
-	// mercury is the mercury client associated with this session
-	mercury *mercury.Client
+	mercury *crypto.Client
 	discovery *crypto.Discovery
 	// player is the player service used to load the audio data
 	player *player.Player
@@ -52,7 +50,7 @@ func (s *Session) Discovery() *crypto.Discovery {
 	return s.discovery
 }
 
-func (s *Session) Mercury() *mercury.Client {
+func (s *Session) Mercury() *crypto.Client {
 	return s.mercury
 }
 
@@ -136,7 +134,7 @@ func (s *Session) startConnection() error {
 func setupSession() (*Session, error) {
 	session := &Session{
 		keys:               crypto.GenerateKeys(),
-		mercuryConstructor: mercury.CreateMercury,
+		mercuryConstructor: crypto.CreateMercury,
 		shannonConstructor: crypto.CreateStream,
 	}
 	err := session.doConnect()
@@ -261,7 +259,6 @@ func (s *Session) handle(cmd uint8, data []byte) {
 		s.country = fmt.Sprintf("%s", data)
 
 	case 0xb2 <= cmd && cmd <= 0xb6:
-		// Mercury responses
 		err := s.mercury.Handle(cmd, bytes.NewReader(data))
 		if err != nil {
 			log.Fatal("Handle 0xbx", err)
