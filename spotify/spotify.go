@@ -22,26 +22,25 @@ func stringListCleanup(strList []string) []string {
 }
 
 func main() {
-	var session *spotify.Session
-	var err error
-
-	username := flag.String("username", EMPTY_STIRNG, "Username of the spotify account. Required.")
-	password := flag.String("password", EMPTY_STIRNG, "Password of the spotify account. Required.")
-	tracks := flag.String("tracks", EMPTY_STIRNG, "List of track IDs to download, separated by commas.")
-
-	flag.Parse()
-	if !isStringDefined(*username) || !isStringDefined(*password) {
-		log.Fatal("Please specify a username and password")
-	}
-
-	session, err = spotify.CoreLogin(*username, *password, "librespot")
-	if err != nil {
-		log.Fatalf("Failed to login: %+v", err)
-	}
-	if isStringDefined(*tracks) {
-		err = spotify.DownloadTrackList(session, stringListCleanup(strings.Split(*tracks, ",")))
-		if err != nil {
-			log.Fatalf("Failed to download tracks: %+v", err)
-		}
-	}
+   var session *spotify.Session
+   var err error
+   username := flag.String("username", EMPTY_STIRNG, "Username of the spotify account. Required.")
+   password := flag.String("password", EMPTY_STIRNG, "Password of the spotify account. Required.")
+   tracks := flag.String("tracks", EMPTY_STIRNG, "List of track IDs to download, separated by commas.")
+   flag.Parse()
+   if !isStringDefined(*username) || !isStringDefined(*password) {
+      log.Fatal("Please specify a username and password")
+   }
+   session, err = spotify.CoreLogin(*username, *password, "librespot")
+   if err != nil {
+      log.Fatalf("Failed to login: %+v", err)
+   }
+   if isStringDefined(*tracks) {
+      err = spotify.DownloadTrackList(
+         session, stringListCleanup(strings.Split(*tracks, ",")),
+      )
+      if err != nil {
+         log.Fatalf("Failed to download tracks: %+v", err)
+      }
+   }
 }

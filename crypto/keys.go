@@ -4,9 +4,7 @@ import (
    "crypto/hmac"
    "crypto/rand"
    "crypto/sha1"
-   "encoding/json"
-   "github.com/89z/spotify/pb"
-   "github.com/golang/protobuf/proto"
+   
    "log"
    "math/big"
 )
@@ -175,33 +173,4 @@ type Track struct {
 	Popularity float32  `json:"popularity"`
 }
 
-func (m *Client) mercuryGet(url string) []byte {
-	done := make(chan []byte)
-	go m.Request(Request{
-		Method:  "GET",
-		Uri:     url,
-		Payload: [][]byte{},
-	}, func(res Response) {
-		done <- res.CombinePayload()
-	})
 
-	result := <-done
-	return result
-}
-
-func (m *Client) mercuryGetJson(url string, result interface{}) error {
-   data := m.mercuryGet(url)
-   return json.Unmarshal(data, result)
-}
-
-func (m *Client) mercuryGetProto(url string, result proto.Message) error {
-   data := m.mercuryGet(url)
-   return proto.Unmarshal(data, result)
-}
-
-func (m *Client) GetTrack(id string) (*pb.Track, error) {
-   uri := "hm://metadata/4/track/" + id
-   result := &pb.Track{}
-   err := m.mercuryGetProto(uri, result)
-   return result, err
-}

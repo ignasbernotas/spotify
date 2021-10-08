@@ -3,6 +3,7 @@ package crypto
 import (
    "bytes"
    "encoding/binary"
+   "encoding/json"
    "fmt"
    "github.com/golang/protobuf/proto"
    "github.com/89z/spotify/pb"
@@ -44,12 +45,6 @@ type Client struct {
 	callbacks     map[string]Callback
 	internal      *Internal
 	cbMu          sync.Mutex
-}
-
-type Connection interface {
-	Subscribe(uri string, recv chan Response, cb Callback) error
-	Request(req Request, cb Callback) (err error)
-	Handle(cmd uint8, reader io.Reader) (err error)
 }
 
 // NEED THIS
@@ -311,4 +306,37 @@ func (res *Response) CombinePayload() []byte {
 		body = append(body, p...)
 	}
 	return body
+}
+
+func (m *Client) mercuryGet(url string) []byte {
+	done := make(chan []byte)
+	go m.Request(Request{
+		Method:  "GET",
+		Uri:     url,
+		Payload: [][]byte{},
+	}, func(res Response) {
+		done <- res.CombinePayload()
+	})
+
+	result := <-done
+	return result
+}
+
+func (m *Client) mercuryGetJson(url string, result interface{}) error {
+   data := m.mercuryGet(url)
+   return json.Unmarshal(data, result)
+}
+
+func (m *Client) mercuryGetProto(url string, result proto.Message) error {
+   data := m.mercuryGet(url)
+   return proto.Unmarshal(data, result)
+}
+
+func (m *Client) GetTrack(id string) (*pb.Track, error) {
+   result := new(pb.Track)
+   err := m.mercuryGetProto("hm://metadata/4/track/" + id, result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }

@@ -12,29 +12,27 @@ import (
 )
 
 // NEED THIS
-func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error) {
-	track, err := session.Mercury().GetTrack(Base62ToHex(trackID))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get track metadata %v", err)
-	}
-
-	var selectedFile *pb.AudioFile = nil
-	for _, file := range track.GetFile() {
-		if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-			selectedFile = file
-		}
-	}
-	if selectedFile == nil {
-		return nil, fmt.Errorf("could not find any files of the song in the specified formats")
-	}
-
-	// Synchronously load the track
-	audioFile, err := session.Player().LoadTrack(selectedFile, track.GetGid())
-	if err != nil {
-		return nil, fmt.Errorf("failed to download the track %v", err)
-	}
-
-	return GetTrackInfo(audioFile, track), nil
+func GetTrackFileAndInfo(ses *Session, trackID string) (*SpotifyTrack, error) {
+   track, err := ses.Mercury().GetTrack(Base62ToHex(trackID))
+   if err != nil {
+      return nil, fmt.Errorf("failed to get track metadata %v", err)
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range track.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return nil, fmt.Errorf(msg)
+   }
+   // Synchronously load the track
+   audioFile, err := ses.Player().LoadTrack(selectedFile, track.GetGid())
+   if err != nil {
+      return nil, fmt.Errorf("failed to download the track %v", err)
+   }
+   return GetTrackInfo(audioFile, track), nil
 }
 
 // NEED THIS
@@ -135,8 +133,8 @@ func trackOutputFilename(track *SpotifyTrack, outputDirectory string) string {
 }
 
 // NEED THIS
-func downloadTrackId(session *Session, id string) error {
-	track, err := GetTrackFileAndInfo(session, id)
+func downloadTrackId(ses *Session, id string) error {
+	track, err := GetTrackFileAndInfo(ses, id)
 	if err != nil {
 		return err
 	}
@@ -157,9 +155,9 @@ func downloadTrackId(session *Session, id string) error {
 }
 
 // NEED THIS
-func DownloadTrackList(session *Session, idList []string) error {
+func DownloadTrackList(ses *Session, idList []string) error {
    for _, id := range idList {
-      err := downloadTrackId(session, id)
+      err := downloadTrackId(ses, id)
       if err != nil {
          return fmt.Errorf("failed to download track %q %+v", id, err)
       }
