@@ -4,7 +4,6 @@ import (
    "bytes"
    "fmt"
    "github.com/89z/spotify/Spotify"
-   "github.com/89z/spotify/connection"
    "github.com/89z/spotify/crypto"
    "github.com/89z/spotify/discovery"
    "github.com/89z/spotify/mercury"
@@ -16,24 +15,19 @@ import (
    "time"
 )
 
-// Session represents an active Spotify connection
 type Session struct {
 	/// Constructor references
-	// mercuryConstructor is the constructor that should be used to build a mercury connection
-	mercuryConstructor func(conn connection.PacketStream) *mercury.Client
-	// shannonConstructor is the constructor used to build the shannon-encrypted PacketStream connection
-	shannonConstructor func(keys crypto.SharedKeys, conn connection.PlainConnection) connection.PacketStream
+	mercuryConstructor func(conn crypto.PacketStream) *mercury.Client
+	shannonConstructor func(keys crypto.SharedKeys, conn crypto.PlainConnection) crypto.PacketStream
 
 	/// Managers and helpers
-	// stream is the encrypted connection to the Spotify server
-	stream connection.PacketStream
+	stream crypto.PacketStream
 	// mercury is the mercury client associated with this session
 	mercury *mercury.Client
 	// discovery is the discovery service used for Spotify Connect devices discovery
 	discovery *discovery.Discovery
 	// player is the player service used to load the audio data
 	player *player.Player
-	// tcpCon is the plain I/O network connection to the server
 	tcpCon io.ReadWriter
 	// keys are the encryption keys used to communicate with the server
 	keys crypto.PrivateKeys
@@ -52,7 +46,7 @@ type Session struct {
 	country string
 }
 
-func (s *Session) Stream() connection.PacketStream {
+func (s *Session) Stream() crypto.PacketStream {
 	return s.stream
 }
 
@@ -85,8 +79,7 @@ func (s *Session) Country() string {
 }
 
 func (s *Session) startConnection() error {
-	// First, start by performing a plaintext connection and send the Hello message
-	conn := connection.MakePlainConnection(s.tcpCon, s.tcpCon)
+	conn := crypto.MakePlainConnection(s.tcpCon, s.tcpCon)
 
 	helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
 	initClientPacket, err := conn.SendPrefixPacket([]byte{0, 4}, helloMessage)
@@ -250,22 +243,22 @@ func (s *Session) handle(cmd uint8, data []byte) {
 	// log.Printf("Handle: 0x%x", cmd)
 
 	switch {
-	case cmd == connection.PacketPing:
+	case cmd == crypto.PacketPing:
 		// Ping
-		err := s.stream.SendPacket(connection.PacketPong, data)
+		err := s.stream.SendPacket(crypto.PacketPong, data)
 		if err != nil {
 			log.Fatal("Error handling PacketPing", err)
 		}
 
-	case cmd == connection.PacketPongAck:
+	case cmd == crypto.PacketPongAck:
 		// Pong reply, ignore
 
-	case cmd == connection.PacketAesKey || cmd == connection.PacketAesKeyError ||
-		cmd == connection.PacketStreamChunkRes:
+	case cmd == crypto.PacketAesKey || cmd == crypto.PacketAesKeyError ||
+		cmd == crypto.PacketStreamChunkRes:
 		// Audio key and data responses
 		s.player.HandleCmd(cmd, data)
 
-	case cmd == connection.PacketCountryCode:
+	case cmd == crypto.PacketCountryCode:
 		// Handle country code
 		s.country = fmt.Sprintf("%s", data)
 
@@ -276,19 +269,19 @@ func (s *Session) handle(cmd uint8, data []byte) {
 			log.Fatal("Handle 0xbx", err)
 		}
 
-	case cmd == connection.PacketSecretBlock:
+	case cmd == crypto.PacketSecretBlock:
 		// Old RSA public key
 
-	case cmd == connection.PacketLegacyWelcome:
+	case cmd == crypto.PacketLegacyWelcome:
 		// Empty welcome packet
 
-	case cmd == connection.PacketProductInfo:
+	case cmd == crypto.PacketProductInfo:
 		// Has some info about A/B testing status, product setup, etc... in an XML fashion.
 
 	case cmd == 0x1f:
 		// Unknown, data is zeroes only
 
-	case cmd == connection.PacketLicenseVersion:
+	case cmd == crypto.PacketLicenseVersion:
 		// This is a simple blob containing the current Spotify license version (e.g. 1.0.1-FR). Format of the blob
 		// is [ uint16 id (= 0x001), uint8 len, string license ]
 

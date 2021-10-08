@@ -1,14 +1,14 @@
 package mercury
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/connection"
-	"io"
-	"sync"
+   "bytes"
+   "encoding/binary"
+   "fmt"
+   "github.com/golang/protobuf/proto"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/crypto"
+   "io"
+   "sync"
 )
 
 // Mercury is the protocol implementation for Spotify Connect playback control and metadata fetching.It works as a
@@ -41,7 +41,7 @@ type Internal struct {
 	seqLock sync.Mutex
 	nextSeq uint32
 	pending map[string]Pending
-	stream  connection.PacketStream
+	stream  crypto.PacketStream
 }
 
 type Client struct {
@@ -57,8 +57,7 @@ type Connection interface {
 	Handle(cmd uint8, reader io.Reader) (err error)
 }
 
-// CreateMercury initializes a Connection for the specified session.
-func CreateMercury(stream connection.PacketStream) *Client {
+func CreateMercury(stream crypto.PacketStream) *Client {
 	client := &Client{
 		callbacks:     make(map[string]Callback),
 		subscriptions: make(map[string][]chan Response),

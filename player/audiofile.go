@@ -1,16 +1,16 @@
 package player
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"encoding/binary"
-	"fmt"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/connection"
-	"io"
-	"math"
-	"sync"
+   "bytes"
+   "crypto/aes"
+   "crypto/cipher"
+   "encoding/binary"
+   "fmt"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/crypto"
+   "io"
+   "math"
+   "sync"
 )
 
 const kChunkSize = 32768 // In number of words (so actual byte size is kChunkSize*4, aka. kChunkByteSize)
@@ -251,7 +251,7 @@ func (a *AudioFile) loadChunk(chunkIndex int) error {
 
 	chunkOffsetStart := uint32(chunkIndex * kChunkSize)
 	chunkOffsetEnd := uint32((chunkIndex + 1) * kChunkSize)
-	err := a.player.stream.SendPacket(connection.PacketStreamChunk, buildAudioChunkRequest(channel.num, a.fileId, chunkOffsetStart, chunkOffsetEnd))
+	err := a.player.stream.SendPacket(crypto.PacketStreamChunk, buildAudioChunkRequest(channel.num, a.fileId, chunkOffsetStart, chunkOffsetEnd))
 
 	if err != nil {
 		return err

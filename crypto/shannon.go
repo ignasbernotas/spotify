@@ -1,12 +1,11 @@
 package crypto
 
 import (
-	"bytes"
-	"encoding/binary"
-	"github.com/89z/spotify/connection"
-	"io"
-	"log"
-	"sync"
+   "bytes"
+   "encoding/binary"
+   "io"
+   "log"
+   "sync"
 )
 
 type shannonStream struct {
@@ -29,8 +28,7 @@ func setKey(ctx *shn_ctx, key []uint8) {
 	shn_nonce(ctx, nonce, len(nonce))
 }
 
-// CreateStream initializes a new Shannon-encrypted PacketStream connection from the specified keys and plain connection
-func CreateStream(keys SharedKeys, conn connection.PlainConnection) connection.PacketStream {
+func CreateStream(keys SharedKeys, conn PlainConnection) PacketStream {
 	s := &shannonStream{
 		reader: conn.Reader,
 		writer: conn.Writer,

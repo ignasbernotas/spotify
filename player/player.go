@@ -1,18 +1,18 @@
 package player
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/connection"
-	"github.com/89z/spotify/mercury"
-	"log"
-	"sync"
+   "bytes"
+   "encoding/binary"
+   "fmt"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/crypto"
+   "github.com/89z/spotify/mercury"
+   "log"
+   "sync"
 )
 
 type Player struct {
-	stream   connection.PacketStream
+	stream   crypto.PacketStream
 	mercury  *mercury.Client
 	seq      uint32
 	audioKey []byte
@@ -24,7 +24,7 @@ type Player struct {
 	nextChan    uint16
 }
 
-func CreatePlayer(conn connection.PacketStream, client *mercury.Client) *Player {
+func CreatePlayer(conn crypto.PacketStream, client *mercury.Client) *Player {
 	return &Player{
 		stream:   conn,
 		mercury:  client,
@@ -60,7 +60,7 @@ func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 	p.seqChans.Store(seqInt, make(chan []byte))
 
 	req := buildKeyRequest(seq, trackId, fileId)
-	err := p.stream.SendPacket(connection.PacketRequestKey, req)
+	err := p.stream.SendPacket(crypto.PacketRequestKey, req)
 	if err != nil {
 		log.Println("Error while sending packet", err)
 		return nil, err
@@ -86,7 +86,7 @@ func (p *Player) AllocateChannel() *Channel {
 
 func (p *Player) HandleCmd(cmd byte, data []byte) {
 	switch {
-	case cmd == connection.PacketAesKey:
+	case cmd == crypto.PacketAesKey:
 		// Audio key response
 		dataReader := bytes.NewReader(data)
 		var seqNum uint32
@@ -98,12 +98,12 @@ func (p *Player) HandleCmd(cmd byte, data []byte) {
 			fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
 		}
 
-	case cmd == connection.PacketAesKeyError:
+	case cmd == crypto.PacketAesKeyError:
 		// Audio key error
 		fmt.Println("[player] Audio key error!")
 		fmt.Printf("%x\n", data)
 
-	case cmd == connection.PacketStreamChunkRes:
+	case cmd == crypto.PacketStreamChunkRes:
 		// Audio data response
 		var channel uint16
 		dataReader := bytes.NewReader(data)

@@ -1,4 +1,5 @@
-package connection
+//package connection
+package crypto
 
 import (
 	"encoding/binary"

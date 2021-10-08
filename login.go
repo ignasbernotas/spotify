@@ -1,18 +1,18 @@
 package spotify
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/connection"
-	"github.com/89z/spotify/discovery"
-	"github.com/golang/protobuf/proto"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"net/url"
+   "bytes"
+   "encoding/base64"
+   "encoding/json"
+   "fmt"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/crypto"
+   "github.com/89z/spotify/discovery"
+   "github.com/golang/protobuf/proto"
+   "io/ioutil"
+   "log"
+   "net/http"
+   "net/url"
 )
 
 var Version = "master"
@@ -82,7 +82,7 @@ func loginOAuthToken(accessToken string, deviceName string) (*Session, error) {
 }
 
 func (s *Session) doLogin(packet []byte, username string) error {
-	err := s.stream.SendPacket(connection.PacketLogin, packet)
+	err := s.stream.SendPacket(crypto.PacketLogin, packet)
 	if err != nil {
 		log.Fatal("bad shannon write", err)
 	}
@@ -114,14 +114,14 @@ func (s *Session) handleLogin() (*Spotify.APWelcome, error) {
 		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	if cmd == connection.PacketAuthFailure {
+	if cmd == crypto.PacketAuthFailure {
 		failure := &Spotify.APLoginFailed{}
 		err := proto.Unmarshal(data, failure)
 		if err != nil {
 			return nil, fmt.Errorf("authenticated failed: %v", err)
 		}
 		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
-	} else if cmd == connection.PacketAPWelcome {
+	} else if cmd == crypto.PacketAPWelcome {
 		welcome := &Spotify.APWelcome{}
 		err := proto.Unmarshal(data, welcome)
 		if err != nil {
