@@ -149,20 +149,20 @@ type connectDeviceMdns struct {
 	Name string
 }
 
+// BlobInfo is the structure holding authentication blob data. The blob is an
+// encoded/encrypted byte array (encoded as base64), holding the encryption
+// keys, the deviceId, and the username.
+type BlobInfo struct {
+   Username    string
+   DecodedBlob string
+}
+
 // Discovery stores the information about Spotify Connect Discovery Request
 type Discovery struct {
    loginBlob  BlobInfo
    deviceId   string
    deviceName string
    devices     []connectDeviceMdns
-}
-
-func (d *Discovery) DeviceId() string {
-	return d.deviceId
-}
-
-func (d *Discovery) DeviceName() string {
-	return d.deviceName
 }
 
 func (d *Discovery) LoginBlob() BlobInfo {

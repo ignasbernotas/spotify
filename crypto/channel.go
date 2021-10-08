@@ -2,7 +2,6 @@ package crypto
 
 import (
    "bytes"
-   "crypto/aes"
    "crypto/cipher"
    "encoding/binary"
    "math"
@@ -87,7 +86,6 @@ func (c *Channel) handlePacket(data []byte) {
 
 }
 
-
 func buildAudioChunkRequest(channel uint16, fileId []byte, start uint32, end uint32) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, channel)
@@ -115,21 +113,11 @@ func buildKeyRequest(seq []byte, trackId []byte, fileId []byte) []byte {
 	return buf.Bytes()
 }
 
-
 var AUDIO_AESIV = []byte{0x72, 0xe0, 0x67, 0xfb, 0xdd, 0xcb, 0xcf, 0x77, 0xeb, 0xe8, 0xbc, 0x64, 0x3f, 0x63, 0x0d, 0x93}
 
 type AudioFileDecrypter struct {
 	ivDiff *big.Int
 	ivInt  *big.Int
-}
-
-func CreateCipher(key []byte) cipher.Block {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err)
-	}
-
-	return block
 }
 
 func NewAudioFileDecrypter() *AudioFileDecrypter {
@@ -169,11 +157,95 @@ func (afd *AudioFileDecrypter) DecryptAudioWithBlock(index int, block cipher.Blo
 	return plaintext[0:length]
 }
 
+type DetailPageImage struct {
+	Uri string `json:"uri"`
+}
 
-// BlobInfo is the structure holding authentication blob data. The blob is an
-// encoded/encrypted byte array (encoded as base64), holding the encryption
-// keys, the deviceId, and the username.
-type BlobInfo struct {
-	Username    string
-	DecodedBlob string
+type DetailPageArtistInfo struct {
+	Uri       string            `json:"uri"`
+	Name      string            `json:"name"`
+	Portraits []DetailPageImage `json:"portraits"`
+	Verified  bool              `json:"verified"`
+}
+type DetailPageArtistHeaderImage struct {
+	Image  string `json:"image"`
+	Offset int    `json:"offset"`
+}
+
+type DetailPageArtistTopTrackRelease struct {
+	Uri   string          `json:"uri"`
+	Name  string          `json:"name"`
+	Cover DetailPageImage `json:"cover"`
+}
+type DetailPageArtistTopTrack struct {
+	Uri       string                          `json:"uri"`
+	Playcount int                             `json:"playcount"`
+	Name      string                          `json:"name"`
+	Release   DetailPageArtistTopTrackRelease `json:"release"`
+	Explicit  bool                            `json:"explicit"`
+}
+type DetailPageArtistUpcomingConcerts struct {
+	InactiveArtist bool `json:"inactive_artist"`
+}
+
+type DetailPageArtistTopTracks struct {
+	Tracks []DetailPageArtistTopTrack `json:"tracks"`
+}
+
+type DetailPageArtistRelatedArtist struct {
+	Uri       string            `json:"uri"`
+	Name      string            `json:"name"`
+	Portraits []DetailPageImage `json:"portraits"`
+}
+
+type DetailPageArtistRelatedArtists struct {
+	Artists []DetailPageArtistRelatedArtist `json:"artists"`
+}
+type DetailPageArtistBiography struct {
+	// there is problems with the escaping of this for some reason
+	// Text string `json:"text"`
+}
+
+type DetailPageGenericReleaseArtist struct {
+	Name string `json:"name"`
+	Uri  string `json:"uri"`
+}
+
+type DetailPageGenericReleaseTrack struct {
+	Uri        string                           `json:"uri"`
+	Playcount  int                              `json:"playcount"`
+	Name       string                           `json:"name"`
+	Popularity int                              `json:"popularity"`
+	Number     int                              `json:"number"`
+	Duration   int                              `json:"duration"`
+	Explicit   bool                             `json:"explicit"`
+	Playable   bool                             `json:"playable"`
+	Artists    []DetailPageGenericReleaseArtist `json:"artists"`
+}
+
+type DetailPageGenericReleaseDisc struct {
+	Number int                             `json:"number"`
+	Name   string                          `json:"name"`
+	Tracks []DetailPageGenericReleaseTrack `json:"tracks"`
+}
+type DetailPageGenericRelease struct {
+	Uri        string                         `json:"uri"`
+	Name       string                         `json:"name"`
+	Cover      DetailPageImage                `json:"cover"`
+	Year       int                            `json:"year"`
+	Month      int                            `json:"month"`
+	Day        int                            `json:"day"`
+	TrackCount int                            `json:"track_count"`
+	Discs      []DetailPageGenericReleaseDisc `json:"discs,omitempty"`
+}
+
+type DetailPageArtistReleasesTypeContainer struct {
+	Releases   []DetailPageGenericRelease `json:"releases"`
+	TotalCount int                        `json:"total_count"`
+}
+type DetailPageArtistReleases struct {
+	Albums       DetailPageArtistReleasesTypeContainer `json:"albums"`
+	Singles      DetailPageArtistReleasesTypeContainer `json:"singles"`
+	AppearsOn    DetailPageArtistReleasesTypeContainer `json:"appears_on"`
+	Compilations DetailPageArtistReleasesTypeContainer `json:"compilations"`
 }

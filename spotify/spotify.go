@@ -34,7 +34,7 @@ func main() {
 		log.Fatal("Please specify a username and password")
 	}
 
-	session, err = spotify.Login(*username, *password, "librespot")
+	session, err = spotify.CoreLogin(*username, *password, "librespot")
 	if err != nil {
 		log.Fatalf("Failed to login: %+v", err)
 	}

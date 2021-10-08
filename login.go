@@ -15,6 +15,7 @@ import (
 var Version = "master"
 var BuildID = "dev"
 
+// NEED THIS
 func CoreLogin(username string, password string, deviceName string) (*Session, error) {
 	s, err := setupSession()
 	if err != nil {
@@ -24,6 +25,7 @@ func CoreLogin(username string, password string, deviceName string) (*Session, e
 	return s, s.loginSession(username, password, deviceName)
 }
 
+// NEED THIS
 func (s *Session) loginSession(username string, password string, deviceName string) error {
 	s.deviceId = GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
@@ -78,6 +80,7 @@ func loginOAuthToken(accessToken string, deviceName string) (*Session, error) {
 	return s, s.doLogin(packet, "")
 }
 
+// NEED THIS
 func (s *Session) doLogin(packet []byte, username string) error {
 	err := s.stream.SendPacket(crypto.PacketLogin, packet)
 	if err != nil {

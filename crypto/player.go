@@ -35,8 +35,6 @@ func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, erro
 }
 
 func (p *Player) LoadTrackWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, trackId []byte) (*AudioFile, error) {
-	// fmt.Printf("[player] Loading track audio key, fileId: %s, trackId: %s\n", utils.ConvertTo62(fileId), utils.ConvertTo62(trackId))
-
 	// Allocate an AudioFile and a channel
 	audioFile := newAudioFileWithIdAndFormat(fileId, format, p)
 
