@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/89z/spotify/internal/spotconvenience"
+	"github.com/89z/spotify"
 	"github.com/librespot-org/librespot-golang/librespot"
 	"github.com/librespot-org/librespot-golang/librespot/core"
 	"log"
@@ -47,16 +47,16 @@ func main() {
 	}
 
 	if isStringDefined(*searchQuery) {
-		spotconvenience.Search(session, *searchQuery)
+		spotify.Search(session, *searchQuery)
 	}
 
 	if isStringDefined(*artists) {
 		for _, artistId := range stringListCleanup(strings.Split(*artists, ",")) {
-			uris, err := spotconvenience.GetArtistTracks(session, artistId)
+			uris, err := spotify.GetArtistTracks(session, artistId)
 			if err != nil {
 				log.Fatalf("Failed to get track list for artist %s: %+v", artistId, err)
 			}
-			err = spotconvenience.DownloadTrackList(session, *uris)
+			err = spotify.DownloadTrackList(session, *uris)
 			if err != nil {
 				log.Fatalf("Failed to download tracks for artist %s: %+v", artistId, err)
 			}
@@ -64,18 +64,18 @@ func main() {
 	}
 	if isStringDefined(*albums) {
 		for _, albumId := range stringListCleanup(strings.Split(*albums, ",")) {
-			uris, err := spotconvenience.GetAlbumTracks(session, albumId)
+			uris, err := spotify.GetAlbumTracks(session, albumId)
 			if err != nil {
 				log.Fatalf("Failed to get track list for album %s: %+v", albumId, err)
 			}
-			err = spotconvenience.DownloadTrackList(session, *uris)
+			err = spotify.DownloadTrackList(session, *uris)
 			if err != nil {
 				log.Fatalf("Failed to download tracks for album %s: %+v", albumId, err)
 			}
 		}
 	}
 	if isStringDefined(*tracks) {
-		err = spotconvenience.DownloadTrackList(session, stringListCleanup(strings.Split(*tracks, ",")))
+		err = spotify.DownloadTrackList(session, stringListCleanup(strings.Split(*tracks, ",")))
 		if err != nil {
 			log.Fatalf("Failed to download tracks: %+v", err)
 		}
@@ -85,6 +85,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to get artist info for artist %s: %+v", *artistInfo, err)
 		}
-		fmt.Print(spotconvenience.NiceJsonFormat(response))
+		fmt.Print(spotify.NiceJsonFormat(response))
 	}
 }

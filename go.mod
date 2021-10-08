@@ -14,4 +14,4 @@ require (
 	google.golang.org/protobuf v1.26.0 // indirect
 )
 
-replace github.com/librespot-org/librespot-golang => ./internal/librespot
+replace github.com/librespot-org/librespot-golang => ./respot
