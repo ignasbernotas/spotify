@@ -62,7 +62,6 @@ func (m *Client) GetAlbum(id string) (*pb.Album, error) {
 	return result, err
 }
 
-// new functions
 func (m *Client) GetArtistInfo(id string, username string) (*DetailPageArtist, error) {
 	uri := fmt.Sprintf("hm://artist/v1/%s/desktop?format=json&catalogue=free&locale=en&username=%scat=1", id, username)
 
@@ -73,6 +72,7 @@ func (m *Client) GetArtistInfo(id string, username string) (*DetailPageArtist, e
 	}
 	return result, nil
 }
+
 func (m *Client) GetAlbumInfo(id string, username string) (*DetailPageGenericRelease, error) {
 	uri := fmt.Sprintf("hm://album/v1/album-app/album/spotify:album:%s/desktop?catalogue=free&locale=en&username=%s", id, username)
 

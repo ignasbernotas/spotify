@@ -6,6 +6,8 @@ import (
    "github.com/89z/spotify/pb"
    "io"
    "os"
+   "path"
+   "strconv"
    "strings"
    "time"
 )
@@ -119,4 +121,79 @@ func NiceJsonFormat(object interface{}) string {
 
 func removeSpotifyUriPrefix(uri string) string {
 	return getLastSplit(uri, ":")
+}
+
+
+const baseOutputDirectory string = "output"
+
+func createTrackDirectory(track *SpotifyTrack) (string, error) {
+	var mainArtistName string
+	var albumName string
+
+	albumName = track.Album.Name
+
+	if len(track.TrackArtistNames) == 0 {
+		mainArtistName = "Unknown"
+	} else {
+		mainArtistName = track.TrackArtistNames[0]
+	}
+
+	// if theres another disc, make a folder for it
+	if track.TrackDiscNumber > 1 {
+		albumName = path.Join(albumName, "Disc "+strconv.Itoa(int(track.TrackDiscNumber)))
+	}
+
+	newPath := path.Join(baseOutputDirectory, mainArtistName, mainArtistName+" - "+albumName)
+	err := os.MkdirAll(newPath, os.ModePerm)
+
+	return newPath, err
+}
+
+func trackOutputFilename(track *SpotifyTrack, outputDirectory string) string {
+	return path.Join(outputDirectory, strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg")
+}
+
+// NEED THIS
+func downloadTrackId(session *Session, id string) error {
+	track, err := GetTrackFileAndInfo(session, id)
+	if err != nil {
+		return err
+	}
+
+	outputDirectory, err := createTrackDirectory(track)
+	if err != nil {
+		return err
+	}
+	outputPath := trackOutputFilename(track, outputDirectory)
+
+	fmt.Printf("Downloading: %s - %s (album track #%d) [%s] to %s\n", strings.Join(track.TrackArtistNames, ", "), track.TrackName, track.TrackNumber, id, outputPath)
+
+	err = saveReaderToNewFile(track.AudioFile, outputPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// NEED THIS
+func DownloadTrackList(session *Session, idList []string) error {
+   for _, id := range idList {
+      err := downloadTrackId(session, id)
+      if err != nil {
+         return fmt.Errorf("failed to download track %q %+v", id, err)
+      }
+   }
+   return nil
+}
+
+func Login(username string, password string, deviceName string) (*Session, error) {
+	return CoreLogin(username, password, deviceName)
+}
+
+func LoginSaved(username string, authData []byte, deviceName string) (*Session, error) {
+	return CoreLoginSaved(username, authData, deviceName)
+}
+
+func LoginOAuth(deviceName string, clientId string, clientSecret string) (*Session, error) {
+	return CoreLoginOAuth(deviceName, clientId, clientSecret)
 }
