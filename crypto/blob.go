@@ -16,62 +16,12 @@ import (
    "os"
 )
 
-// BlobInfo is the structure holding authentication blob data. The blob is an encoded/encrypted byte array (encoded
-// as base64), holding the encryption keys, the deviceId, and the username.
+// BlobInfo is the structure holding authentication blob data. The blob is an
+// encoded/encrypted byte array (encoded as base64), holding the encryption
+// keys, the deviceId, and the username.
 type BlobInfo struct {
 	Username    string
 	DecodedBlob string
-}
-
-// BlobFromFile restores a Blob from the specified path
-func BlobFromFile(path string) (BlobInfo, error) {
-	result := BlobInfo{}
-	file, err := os.Open(path)
-	if err != nil {
-		return result, err
-	}
-
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&result)
-	if err != nil {
-		return result, err
-	}
-	return result, nil
-}
-
-// NewBlobInfo creates a new BlobInfo structure with the blob data filled in DecodedBlob field
-func NewBlobInfo(blob64 string, client64 string,
-	keys PrivateKeys, deviceId string, username string) (BlobInfo, error) {
-
-	partDecoded, err := decodeBlob(blob64, client64, keys)
-	if err != nil {
-		return BlobInfo{}, err
-	}
-
-	fullDecoded := decodeBlobSecondary(partDecoded, username,
-		deviceId)
-
-	return BlobInfo{
-		Username:    username,
-		DecodedBlob: base64.StdEncoding.EncodeToString(fullDecoded),
-	}, nil
-}
-
-// MakeAuthBlob builds an encoded blob in order to authenticate against Spotify services
-func (b *BlobInfo) MakeAuthBlob(deviceId string, client64 string, dhKeys PrivateKeys) (string, error) {
-	secret := sha1.Sum([]byte(deviceId))
-	key := blobKey(b.Username, secret[:])
-
-	blobBytes, err := base64.StdEncoding.DecodeString(b.DecodedBlob)
-	if err != nil {
-		return "", err
-	}
-	encoded := encryptBlob(blobBytes, key)
-	fullEncoded := makeBlob(encoded, dhKeys, client64)
-
-	return fullEncoded, nil
 }
 
 // SaveToFile saves the current blob to the specified path

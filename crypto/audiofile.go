@@ -55,11 +55,6 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
 	}
 }
 
-// Size returns the size, in bytes, of the final audio file
-func (a *AudioFile) Size() uint32 {
-	return a.size - uint32(a.headerOffset())
-}
-
 func (a *AudioFile) Read(buf []byte) (int, error) {
 	length := len(buf)
 	outBufCursor := 0
@@ -132,22 +127,6 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 	}
 
 	return totalWritten, err
-}
-
-// Seek implements the io.Seeker interface
-func (a *AudioFile) Seek(offset int64, whence int) (int64, error) {
-	switch whence {
-	case io.SeekStart:
-		a.cursor = int(offset) + a.headerOffset()
-
-	case io.SeekEnd:
-		a.cursor = int(int64(a.size) + offset)
-
-	case io.SeekCurrent:
-		a.cursor += int(offset)
-	}
-
-	return int64(a.cursor - a.headerOffset()), nil
 }
 
 func (a *AudioFile) headerOffset() int {
