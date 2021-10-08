@@ -1,4 +1,4 @@
-package player
+package crypto
 
 import (
    "bytes"
@@ -6,8 +6,7 @@ import (
    "crypto/cipher"
    "encoding/binary"
    "fmt"
-   "github.com/89z/spotify/Spotify"
-   "github.com/89z/spotify/crypto"
+   "github.com/89z/spotify/pb"
    "io"
    "math"
    "sync"
@@ -25,11 +24,10 @@ func min(a, b int) int {
 	return b
 }
 
-// AudioFile represents a downloadable/cached audio file fetched by Spotify, in an encoded format (OGG, etc)
 type AudioFile struct {
 	size           uint32
 	lock           sync.RWMutex
-	format         Spotify.AudioFile_Format
+	format         pb.AudioFile_Format
 	fileId         []byte
 	player         *Player
 	cipher         cipher.Block
@@ -43,11 +41,11 @@ type AudioFile struct {
 	chunksLoading  bool
 }
 
-func newAudioFile(file *Spotify.AudioFile, player *Player) *AudioFile {
+func newAudioFile(file *pb.AudioFile, player *Player) *AudioFile {
 	return newAudioFileWithIdAndFormat(file.GetFileId(), file.GetFormat(), player)
 }
 
-func newAudioFileWithIdAndFormat(fileId []byte, format Spotify.AudioFile_Format, player *Player) *AudioFile {
+func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *Player) *AudioFile {
 	return &AudioFile{
 		player:        player,
 		fileId:        fileId,
@@ -66,9 +64,6 @@ func (a *AudioFile) Size() uint32 {
 	return a.size - uint32(a.headerOffset())
 }
 
-// Read is an implementation of the io.Reader interface. Note that due to the nature of the streaming, we may return
-// zero bytes when we are waiting for audio data from the Spotify servers, so make sure to wait for the io.EOF error
-// before stopping playback.
 func (a *AudioFile) Read(buf []byte) (int, error) {
 	length := len(buf)
 	outBufCursor := 0
@@ -160,13 +155,9 @@ func (a *AudioFile) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (a *AudioFile) headerOffset() int {
-	// If the file format is an OGG, we skip the first kOggSkipBytes (167) bytes. We could implement despotify's
-	// SpotifyOggHeader (https://sourceforge.net/p/despotify/code/HEAD/tree/java/trunk/src/main/java/se/despotify/client/player/SpotifyOggHeader.java)
-	// to read Spotify's metadata (samples, length, gain, ...). For now, we simply skip the custom header to the actual
-	// OGG/Vorbis data.
 	switch {
-	case a.format == Spotify.AudioFile_OGG_VORBIS_96 || a.format == Spotify.AudioFile_OGG_VORBIS_160 ||
-		a.format == Spotify.AudioFile_OGG_VORBIS_320:
+	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
+		a.format == pb.AudioFile_OGG_VORBIS_320:
 		return kOggSkipBytes
 
 	default:
@@ -251,7 +242,7 @@ func (a *AudioFile) loadChunk(chunkIndex int) error {
 
 	chunkOffsetStart := uint32(chunkIndex * kChunkSize)
 	chunkOffsetEnd := uint32((chunkIndex + 1) * kChunkSize)
-	err := a.player.stream.SendPacket(crypto.PacketStreamChunk, buildAudioChunkRequest(channel.num, a.fileId, chunkOffsetStart, chunkOffsetEnd))
+	err := a.player.stream.SendPacket(PacketStreamChunk, buildAudioChunkRequest(channel.num, a.fileId, chunkOffsetStart, chunkOffsetEnd))
 
 	if err != nil {
 		return err

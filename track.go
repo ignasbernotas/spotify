@@ -3,7 +3,7 @@ package spotify
 import (
    "encoding/json"
    "fmt"
-   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/pb"
    "github.com/89z/spotify/crypto"
    "io"
    "os"
@@ -17,9 +17,9 @@ func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error
 		return nil, fmt.Errorf("Failed to get track metadata: %s", err)
 	}
 
-	var selectedFile *Spotify.AudioFile = nil
+	var selectedFile *pb.AudioFile = nil
 	for _, file := range track.GetFile() {
-		if file.GetFormat() == Spotify.AudioFile_OGG_VORBIS_160 {
+		if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
 			selectedFile = file
 		}
 	}
@@ -36,7 +36,7 @@ func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error
 	return GetTrackInfo(audioFile, track), nil
 }
 
-func GetTrackInfo(audioFile io.Reader, track *Spotify.Track) *SpotifyTrack {
+func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
 	serializedTrack := &SpotifyTrack{}
 	serializedTrack.AudioFile = audioFile
 	serializedTrack.TrackName = track.GetName()

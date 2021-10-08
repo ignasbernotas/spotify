@@ -5,14 +5,10 @@ import (
    "encoding/binary"
    "fmt"
    "github.com/golang/protobuf/proto"
-   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/pb"
    "io"
    "sync"
 )
-
-// Mercury is the protocol implementation for Spotify Connect playback control and metadata fetching.It works as a
-// PUB/SUB system, where you, as an audio sink, subscribes to the events of a specified user (playlist changes) but
-// also access various metadata normally fetched by external players (tracks metadata, playlists, artists, etc).
 
 type Response struct {
 	HeaderData []byte
@@ -77,7 +73,7 @@ func (m *Client) Subscribe(uri string, recv chan Response, cb Callback) error {
 		Uri:    uri,
 	}, func(response Response) {
 		for _, part := range response.Payload {
-			sub := &Spotify.Subscription{}
+			sub := &pb.Subscription{}
 			err := proto.Unmarshal(part, sub)
 			if err == nil && *sub.Uri != uri {
 				m.addChannelSubscriber(*sub.Uri, recv)
@@ -193,7 +189,7 @@ func encodeRequest(seq []byte, req Request) ([]byte, error) {
 		return nil, err
 	}
 
-	header := &Spotify.Header{
+	header := &pb.Header{
 		Uri:    proto.String(req.Uri),
 		Method: proto.String(req.Method),
 	}
@@ -326,7 +322,7 @@ func (m *Internal) parseResponse(cmd uint8, reader io.Reader) (response *Respons
 
 func (m *Internal) completeRequest(cmd uint8, pending Pending, seqKey string) (response *Response, err error) {
 	headerData := pending.parts[0]
-	header := &Spotify.Header{}
+	header := &pb.Header{}
 	err = proto.Unmarshal(headerData, header)
 	if err != nil {
 		return nil, err

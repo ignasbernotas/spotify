@@ -5,7 +5,7 @@ import (
    "encoding/base64"
    "encoding/json"
    "fmt"
-   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/pb"
    "github.com/89z/spotify/crypto"
    "github.com/golang/protobuf/proto"
    "io/ioutil"
@@ -52,7 +52,7 @@ func CoreLoginSaved(username string, authData []byte, deviceName string) (*Sessi
 	}
 
 	packet := makeLoginBlobPacket(username, authData,
-		Spotify.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
+		pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
 	return s, s.doLogin(packet, username)
 }
 
@@ -76,7 +76,7 @@ func loginOAuthToken(accessToken string, deviceName string) (*Session, error) {
 	}
 
 	packet := makeLoginBlobPacket("", []byte(accessToken),
-		Spotify.AuthenticationType_AUTHENTICATION_SPOTIFY_TOKEN.Enum(), s.deviceId)
+		pb.AuthenticationType_AUTHENTICATION_SPOTIFY_TOKEN.Enum(), s.deviceId)
 	return s, s.doLogin(packet, "")
 }
 
@@ -95,7 +95,6 @@ func (s *Session) doLogin(packet []byte, username string) error {
 	// Store the few interesting values
 	s.username = welcome.GetCanonicalUsername()
 	if s.username == "" {
-		// Spotify might not return a canonical username, so reuse the blob's one instead
 		s.username = s.discovery.LoginBlob().Username
 	}
 	s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
@@ -107,21 +106,21 @@ func (s *Session) doLogin(packet []byte, username string) error {
 	return nil
 }
 
-func (s *Session) handleLogin() (*Spotify.APWelcome, error) {
+func (s *Session) handleLogin() (*pb.APWelcome, error) {
 	cmd, data, err := s.stream.RecvPacket()
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
 	if cmd == crypto.PacketAuthFailure {
-		failure := &Spotify.APLoginFailed{}
+		failure := &pb.APLoginFailed{}
 		err := proto.Unmarshal(data, failure)
 		if err != nil {
 			return nil, fmt.Errorf("authenticated failed: %v", err)
 		}
 		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
 	} else if cmd == crypto.PacketAPWelcome {
-		welcome := &Spotify.APWelcome{}
+		welcome := &pb.APWelcome{}
 		err := proto.Unmarshal(data, welcome)
 		if err != nil {
 			return nil, fmt.Errorf("authentication failed: %v", err)
@@ -142,7 +141,7 @@ func (s *Session) getLoginBlobPacket(blob crypto.BlobInfo) []byte {
 	readBytes(buffer)
 	buffer.ReadByte()
 	authNum := readInt(buffer)
-	authType := Spotify.AuthenticationType(authNum)
+	authType := pb.AuthenticationType(authNum)
 	buffer.ReadByte()
 	authData := readBytes(buffer)
 
@@ -151,28 +150,26 @@ func (s *Session) getLoginBlobPacket(blob crypto.BlobInfo) []byte {
 
 func makeLoginPasswordPacket(username string, password string, deviceId string) []byte {
 	return makeLoginBlobPacket(username, []byte(password),
-		Spotify.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), deviceId)
-	// return makeLoginBlobPacket(username, []byte(password),
-	// 	Spotify.AuthenticationType_AUTHENTICATION_USER_PASS.Enum(), deviceId)
+		pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), deviceId)
 }
 
 func makeLoginBlobPacket(username string, authData []byte,
-	authType *Spotify.AuthenticationType, deviceId string) []byte {
+	authType *pb.AuthenticationType, deviceId string) []byte {
 
 	// TODO: Fix PremiumAccountRequired
-	packet := &Spotify.ClientResponseEncrypted{
-		LoginCredentials: &Spotify.LoginCredentials{
+	packet := &pb.ClientResponseEncrypted{
+		LoginCredentials: &pb.LoginCredentials{
 			Username: proto.String(username),
 			Typ:      authType,
 			AuthData: authData,
 		},
-		AccountCreation: Spotify.AccountCreation_ACCOUNT_CREATION_ALWAYS_PROMPT.Enum(),
-		SystemInfo: &Spotify.SystemInfo{
-			CpuFamily:               Spotify.CpuFamily_CPU_X86_64.Enum(),
+		AccountCreation: pb.AccountCreation_ACCOUNT_CREATION_ALWAYS_PROMPT.Enum(),
+		SystemInfo: &pb.SystemInfo{
+			CpuFamily:               pb.CpuFamily_CPU_X86_64.Enum(),
 			CpuSubtype:              proto.Uint32(0),
-			Brand:                   Spotify.Brand_BRAND_UNBRANDED.Enum(),
+			Brand:                   pb.Brand_BRAND_UNBRANDED.Enum(),
 			BrandFlags:              proto.Uint32(0),
-			Os:                      Spotify.Os_OS_LINUX.Enum(),
+			Os:                      pb.Os_OS_LINUX.Enum(),
 			OsVersion:               proto.Uint32(0),
 			OsExt:                   proto.Uint32(0),
 			SystemInformationString: proto.String("Linux [x86-64 0]"),
@@ -180,7 +177,7 @@ func makeLoginBlobPacket(username string, authData []byte,
 		},
 		PlatformModel: proto.String("PC desktop"),
 		VersionString: proto.String("1.1.10.546.ge08ef575"),
-		ClientInfo: &Spotify.ClientInfo{
+		ClientInfo: &pb.ClientInfo{
 			Limited:  proto.Bool(false),
 			Language: proto.String("en"),
 		},

@@ -1,18 +1,17 @@
-package player
+package crypto
 
 import (
    "bytes"
    "encoding/binary"
    "fmt"
-   "github.com/89z/spotify/Spotify"
-   "github.com/89z/spotify/crypto"
+   "github.com/89z/spotify/pb"
    "log"
    "sync"
 )
 
 type Player struct {
-	stream   crypto.PacketStream
-	mercury  *crypto.Client
+	stream   PacketStream
+	mercury  *Client
 	seq      uint32
 	audioKey []byte
 
@@ -23,7 +22,7 @@ type Player struct {
 	nextChan    uint16
 }
 
-func CreatePlayer(conn crypto.PacketStream, client *crypto.Client) *Player {
+func CreatePlayer(conn PacketStream, client *Client) *Player {
 	return &Player{
 		stream:   conn,
 		mercury:  client,
@@ -34,11 +33,11 @@ func CreatePlayer(conn crypto.PacketStream, client *crypto.Client) *Player {
 	}
 }
 
-func (p *Player) LoadTrack(file *Spotify.AudioFile, trackId []byte) (*AudioFile, error) {
+func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
 	return p.LoadTrackWithIdAndFormat(file.FileId, file.GetFormat(), trackId)
 }
 
-func (p *Player) LoadTrackWithIdAndFormat(fileId []byte, format Spotify.AudioFile_Format, trackId []byte) (*AudioFile, error) {
+func (p *Player) LoadTrackWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, trackId []byte) (*AudioFile, error) {
 	// fmt.Printf("[player] Loading track audio key, fileId: %s, trackId: %s\n", utils.ConvertTo62(fileId), utils.ConvertTo62(trackId))
 
 	// Allocate an AudioFile and a channel
@@ -59,7 +58,7 @@ func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 	p.seqChans.Store(seqInt, make(chan []byte))
 
 	req := buildKeyRequest(seq, trackId, fileId)
-	err := p.stream.SendPacket(crypto.PacketRequestKey, req)
+	err := p.stream.SendPacket(PacketRequestKey, req)
 	if err != nil {
 		log.Println("Error while sending packet", err)
 		return nil, err
@@ -85,7 +84,7 @@ func (p *Player) AllocateChannel() *Channel {
 
 func (p *Player) HandleCmd(cmd byte, data []byte) {
 	switch {
-	case cmd == crypto.PacketAesKey:
+	case cmd == PacketAesKey:
 		// Audio key response
 		dataReader := bytes.NewReader(data)
 		var seqNum uint32
@@ -97,12 +96,12 @@ func (p *Player) HandleCmd(cmd byte, data []byte) {
 			fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
 		}
 
-	case cmd == crypto.PacketAesKeyError:
+	case cmd == PacketAesKeyError:
 		// Audio key error
 		fmt.Println("[player] Audio key error!")
 		fmt.Printf("%x\n", data)
 
-	case cmd == crypto.PacketStreamChunkRes:
+	case cmd == PacketStreamChunkRes:
 		// Audio data response
 		var channel uint16
 		dataReader := bytes.NewReader(data)

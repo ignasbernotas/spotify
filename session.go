@@ -3,9 +3,8 @@ package spotify
 import (
    "bytes"
    "fmt"
-   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/pb"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/player"
    "github.com/golang/protobuf/proto"
    "io"
    "log"
@@ -22,23 +21,18 @@ type Session struct {
 	stream crypto.PacketStream
 	mercury *crypto.Client
 	discovery *crypto.Discovery
-	// player is the player service used to load the audio data
-	player *player.Player
+	player *crypto.Player
 	tcpCon io.ReadWriter
 	// keys are the encryption keys used to communicate with the server
 	keys crypto.PrivateKeys
 
 	/// State and variables
-	// deviceId is the device identifier (computer name, Android serial number, ...) sent during auth to the Spotify
 	// servers for this session
 	deviceId string
-	// deviceName is the device name (Android device model) sent during auth to the Spotify servers for this session
 	deviceName string
 	// username is the currently authenticated canonical username
 	username string
-	// reusableAuthBlob is the reusable authentication blob for Spotify Connect devices
 	reusableAuthBlob []byte
-	// country is the user country returned by the Spotify servers
 	country string
 }
 
@@ -54,7 +48,7 @@ func (s *Session) Mercury() *crypto.Client {
 	return s.mercury
 }
 
-func (s *Session) Player() *player.Player {
+func (s *Session) Player() *crypto.Player {
 	return s.player
 }
 
@@ -91,7 +85,7 @@ func (s *Session) startConnection() error {
 		return err
 	}
 
-	response := Spotify.APResponseMessage{}
+	response := pb.APResponseMessage{}
 	err = proto.Unmarshal(initServerPacket[4:], &response)
 	if err != nil {
 		log.Fatal("Failed to unmarshal server hello", err)
@@ -101,14 +95,14 @@ func (s *Session) startConnection() error {
 	remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
 	sharedKeys := s.keys.AddRemoteKey(remoteKey, initClientPacket, initServerPacket)
 
-	plainResponse := &Spotify.ClientResponsePlaintext{
-		LoginCryptoResponse: &Spotify.LoginCryptoResponseUnion{
-			DiffieHellman: &Spotify.LoginCryptoDiffieHellmanResponse{
+	plainResponse := &pb.ClientResponsePlaintext{
+		LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+			DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
 				Hmac: sharedKeys.Challenge(),
 			},
 		},
-		PowResponse:    &Spotify.PoWResponseUnion{},
-		CryptoResponse: &Spotify.CryptoResponseUnion{},
+		PowResponse:    &pb.PoWResponseUnion{},
+		CryptoResponse: &pb.CryptoResponseUnion{},
 	}
 
 	plainResponseMessage, err := proto.Marshal(plainResponse)
@@ -126,7 +120,7 @@ func (s *Session) startConnection() error {
 	s.stream = s.shannonConstructor(sharedKeys, conn)
 	s.mercury = s.mercuryConstructor(s.stream)
 
-	s.player = player.CreatePlayer(s.stream, s.mercury)
+	s.player = crypto.CreatePlayer(s.stream, s.mercury)
 
 	return nil
 }
@@ -202,7 +196,7 @@ func (s *Session) doReconnect() error {
 	}
 
 	packet := makeLoginBlobPacket(s.username, s.reusableAuthBlob,
-		Spotify.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
+		pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
 	return s.doLogin(packet, s.username)
 }
 
@@ -277,9 +271,6 @@ func (s *Session) handle(cmd uint8, data []byte) {
 		// Unknown, data is zeroes only
 
 	case cmd == crypto.PacketLicenseVersion:
-		// This is a simple blob containing the current Spotify license version (e.g. 1.0.1-FR). Format of the blob
-		// is [ uint16 id (= 0x001), uint8 len, string license ]
-
 	default:
 		fmt.Printf("Unhandled cmd 0x%x\n", cmd)
 	}
@@ -314,24 +305,24 @@ func readBytes(b *bytes.Buffer) []byte {
 }
 
 func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
-	hello := &Spotify.ClientHello{
-		BuildInfo: &Spotify.BuildInfo{
-			Product:      Spotify.Product_PRODUCT_CLIENT.Enum(), // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
-			ProductFlags: []Spotify.ProductFlags{Spotify.ProductFlags_PRODUCT_FLAG_NONE},
-			Platform:     Spotify.Platform_PLATFORM_LINUX_X86_64.Enum(),
+	hello := &pb.ClientHello{
+		BuildInfo: &pb.BuildInfo{
+			Product:      pb.Product_PRODUCT_CLIENT.Enum(), // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
+			ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
+			Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
 			Version:      proto.Uint64(0x10800000000),
 		},
-		FingerprintsSupported: []Spotify.Fingerprint{},
-		CryptosuitesSupported: []Spotify.Cryptosuite{
-			Spotify.Cryptosuite_CRYPTO_SUITE_SHANNON},
-		LoginCryptoHello: &Spotify.LoginCryptoHelloUnion{
-			DiffieHellman: &Spotify.LoginCryptoDiffieHellmanHello{
+		FingerprintsSupported: []pb.Fingerprint{},
+		CryptosuitesSupported: []pb.Cryptosuite{
+			pb.Cryptosuite_CRYPTO_SUITE_SHANNON},
+		LoginCryptoHello: &pb.LoginCryptoHelloUnion{
+			DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
 				Gc:              publicKey,
 				ServerKeysKnown: proto.Uint32(1),
 			},
 		},
 		ClientNonce: nonce,
-		FeatureSet: &Spotify.FeatureSet{
+		FeatureSet: &pb.FeatureSet{
 			Autoupdate2: proto.Bool(true),
 		},
 		Padding: []byte{0x1e},

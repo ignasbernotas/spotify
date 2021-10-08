@@ -4,7 +4,7 @@ import (
    "encoding/json"
    "fmt"
    "github.com/golang/protobuf/proto"
-   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/pb"
    "net/url"
 )
 
@@ -69,23 +69,23 @@ func (m *Client) Suggest(search string) (*SuggestResult, error) {
 	return parseSuggest(data)
 }
 
-func (m *Client) GetTrack(id string) (*Spotify.Track, error) {
+func (m *Client) GetTrack(id string) (*pb.Track, error) {
 	uri := "hm://metadata/4/track/" + id
-	result := &Spotify.Track{}
+	result := &pb.Track{}
 	err := m.mercuryGetProto(uri, result)
 	return result, err
 }
 
-func (m *Client) GetArtist(id string) (*Spotify.Artist, error) {
+func (m *Client) GetArtist(id string) (*pb.Artist, error) {
 	uri := "hm://metadata/4/artist/" + id
-	result := &Spotify.Artist{}
+	result := &pb.Artist{}
 	err := m.mercuryGetProto(uri, result)
 	return result, err
 }
 
-func (m *Client) GetAlbum(id string) (*Spotify.Album, error) {
+func (m *Client) GetAlbum(id string) (*pb.Album, error) {
 	uri := "hm://metadata/4/album/" + id
-	result := &Spotify.Album{}
+	result := &pb.Album{}
 	err := m.mercuryGetProto(uri, result)
 	return result, err
 }

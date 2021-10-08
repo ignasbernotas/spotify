@@ -1,4 +1,5 @@
-package player
+//package player
+package crypto
 
 import (
 	"bytes"
