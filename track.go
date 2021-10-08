@@ -5,7 +5,7 @@ import (
    "fmt"
    "github.com/89z/spotify/Spotify"
    "github.com/89z/spotify/metadata"
-   "github.com/89z/spotify/utils"
+   "github.com/89z/spotify/discovery"
    "io"
    "os"
    "strings"
@@ -14,7 +14,7 @@ import (
 
 func GetTrackFileAndInfo(session *Session, trackID string) (*SpotifyTrack, error) {
 	// Get the track metadata: it holds information about which files and encodings are available
-	track, err := session.Mercury().GetTrack(utils.Base62ToHex(trackID))
+	track, err := session.Mercury().GetTrack(discovery.Base62ToHex(trackID))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get track metadata: %s", err)
 	}

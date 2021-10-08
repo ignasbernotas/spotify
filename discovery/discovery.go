@@ -6,7 +6,6 @@ import (
    "errors"
    "fmt"
    "github.com/89z/spotify/crypto"
-   "github.com/89z/spotify/utils"
    "log"
    "net"
    "net/http"
@@ -47,7 +46,7 @@ type connectGetInfo struct {
 type Discovery struct {
    keys       crypto.PrivateKeys
    cachePath  string
-   loginBlob  utils.BlobInfo
+   loginBlob  BlobInfo
    deviceId   string
    deviceName string
    httpServer  *http.Server
@@ -82,7 +81,7 @@ func (d *Discovery) DeviceName() string {
 	return d.deviceName
 }
 
-func (d *Discovery) LoginBlob() utils.BlobInfo {
+func (d *Discovery) LoginBlob() BlobInfo {
 	return d.loginBlob
 }
 
@@ -158,7 +157,7 @@ func (d *Discovery) handleAddUser(r *http.Request) error {
 		return errors.New("bad username Request")
 	}
 
-	blob, err := utils.NewBlobInfo(blob64, client64, d.keys,
+	blob, err := NewBlobInfo(blob64, client64, d.keys,
 		d.deviceId, username)
 	if err != nil {
 		return errors.New("failed to decode blob")

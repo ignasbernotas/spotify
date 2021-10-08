@@ -1,22 +1,19 @@
-//package core
 package spotify
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"log"
-	"net"
-	"time"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/89z/spotify/Spotify"
-	"github.com/89z/spotify/connection"
-	"github.com/89z/spotify/crypto"
-	"github.com/89z/spotify/discovery"
-	"github.com/89z/spotify/mercury"
-	"github.com/89z/spotify/player"
-	"github.com/89z/spotify/utils"
+   "bytes"
+   "fmt"
+   "github.com/89z/spotify/Spotify"
+   "github.com/89z/spotify/connection"
+   "github.com/89z/spotify/crypto"
+   "github.com/89z/spotify/discovery"
+   "github.com/89z/spotify/mercury"
+   "github.com/89z/spotify/player"
+   "github.com/golang/protobuf/proto"
+   "io"
+   "log"
+   "net"
+   "time"
 )
 
 // Session represents an active Spotify connection
@@ -176,7 +173,7 @@ func sessionFromDiscovery(d *discovery.Discovery) (*Session, error) {
 }
 
 func (s *Session) doConnect() error {
-	apUrl, err := utils.APResolve()
+	apUrl, err := discovery.APResolve()
 	if err != nil {
 		log.Println("Failed to get ap url", err)
 		return err
