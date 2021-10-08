@@ -2,7 +2,6 @@ package crypto
 
 import (
    "encoding/json"
-   "fmt"
    "github.com/golang/protobuf/proto"
    "github.com/89z/spotify/pb"
 )
@@ -80,69 +79,6 @@ type VideoEpisode struct {
 	Image string `json:"image"`
 }
 
-type TopRecommendation struct {
-}
-
-type SearchResponse struct {
-	Results         SearchResult `json:"results"`
-	RequestId       string       `json:"requestId"`
-	CategoriesOrder []string     `json:"categoriesOrder"`
-}
-
-type SearchResult struct {
-	Tracks struct {
-		Hits  []Track `json:"hits"`
-		Total int     `json:"total"`
-	} `json:"tracks"`
-
-	Albums struct {
-		Hits  []Album `json:"hits"`
-		Total int     `json:"total"`
-	} `json:"albums"`
-
-	Artists struct {
-		Hits  []Artist `json:"hits"`
-		Total int      `json:"total"`
-	} `json:"artists"`
-
-	Playlists struct {
-		Hits  []Playlist `json:"hits"`
-		Total int        `json:"total"`
-	} `json:"playlists"`
-
-	Profiles struct {
-		Hits  []Profile `json:"hits"`
-		Total int       `json:"total"`
-	} `json:"profiles"`
-
-	Genres struct {
-		Hits  []Genre `json:"hits"`
-		Total int     `json:"total"`
-	} `json:"genres"`
-
-	TopHit struct {
-		Hits  []TopHit `json:"hits"`
-		Total int      `json:"total"`
-	} `json:"topHit"`
-
-	Shows struct {
-		Hits  []Show `json:"hits"`
-		Total int    `json:"total"`
-	} `json:"shows"`
-
-	VideoEpisodes struct {
-		Hits  []VideoEpisode `json:"hits"`
-		Total int            `json:"total"`
-	} `json:"videoEpisodes"`
-
-	TopRecommendations struct {
-		Hits  []TopRecommendation `json:"hits"`
-		Total int                 `json:"total"`
-	} `json:"topRecommendations"`
-
-	Error error
-}
-
 type SuggestResult struct {
 	Sections []struct {
 		RawItems json.RawMessage `json:"items"`
@@ -177,11 +113,9 @@ func (m *Client) mercuryGet(url string) []byte {
 	return result
 }
 
-func (m *Client) mercuryGetJson(url string, result interface{}) (err error) {
-	data := m.mercuryGet(url)
-	// fmt.Printf("Received:\n%s\n\n\n", data)
-	err = json.Unmarshal(data, result)
-	return
+func (m *Client) mercuryGetJson(url string, result interface{}) error {
+   data := m.mercuryGet(url)
+   return json.Unmarshal(data, result)
 }
 
 func (m *Client) mercuryGetProto(url string, result proto.Message) error {
@@ -190,19 +124,8 @@ func (m *Client) mercuryGetProto(url string, result proto.Message) error {
 }
 
 func (m *Client) GetTrack(id string) (*pb.Track, error) {
-	uri := "hm://metadata/4/track/" + id
-	result := &pb.Track{}
-	err := m.mercuryGetProto(uri, result)
-	return result, err
-}
-
-func (m *Client) GetAlbumInfo(id string, username string) (*DetailPageGenericRelease, error) {
-	uri := fmt.Sprintf("hm://album/v1/album-app/album/spotify:album:%s/desktop?catalogue=free&locale=en&username=%s", id, username)
-
-	result := &DetailPageGenericRelease{}
-	err := m.mercuryGetJson(uri, result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+   uri := "hm://metadata/4/track/" + id
+   result := &pb.Track{}
+   err := m.mercuryGetProto(uri, result)
+   return result, err
 }

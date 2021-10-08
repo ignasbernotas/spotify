@@ -184,6 +184,7 @@ type DetailPageArtistTopTrack struct {
 	Release   DetailPageArtistTopTrackRelease `json:"release"`
 	Explicit  bool                            `json:"explicit"`
 }
+
 type DetailPageArtistUpcomingConcerts struct {
 	InactiveArtist bool `json:"inactive_artist"`
 }
@@ -228,6 +229,7 @@ type DetailPageGenericReleaseDisc struct {
 	Name   string                          `json:"name"`
 	Tracks []DetailPageGenericReleaseTrack `json:"tracks"`
 }
+
 type DetailPageGenericRelease struct {
 	Uri        string                         `json:"uri"`
 	Name       string                         `json:"name"`
@@ -237,15 +239,4 @@ type DetailPageGenericRelease struct {
 	Day        int                            `json:"day"`
 	TrackCount int                            `json:"track_count"`
 	Discs      []DetailPageGenericReleaseDisc `json:"discs,omitempty"`
-}
-
-type DetailPageArtistReleasesTypeContainer struct {
-	Releases   []DetailPageGenericRelease `json:"releases"`
-	TotalCount int                        `json:"total_count"`
-}
-type DetailPageArtistReleases struct {
-	Albums       DetailPageArtistReleasesTypeContainer `json:"albums"`
-	Singles      DetailPageArtistReleasesTypeContainer `json:"singles"`
-	AppearsOn    DetailPageArtistReleasesTypeContainer `json:"appears_on"`
-	Compilations DetailPageArtistReleasesTypeContainer `json:"compilations"`
 }
