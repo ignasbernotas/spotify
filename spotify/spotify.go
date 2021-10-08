@@ -26,7 +26,7 @@ func main() {
    var err error
    username := flag.String("username", EMPTY_STIRNG, "Username of the spotify account. Required.")
    password := flag.String("password", EMPTY_STIRNG, "Password of the spotify account. Required.")
-   tracks := flag.String("tracks", EMPTY_STIRNG, "List of track IDs to download, separated by commas.")
+   track := flag.String("track", EMPTY_STIRNG, "track ID to download")
    flag.Parse()
    if !isStringDefined(*username) || !isStringDefined(*password) {
       log.Fatal("Please specify a username and password")
@@ -35,12 +35,10 @@ func main() {
    if err != nil {
       log.Fatalf("Failed to login: %+v", err)
    }
-   if isStringDefined(*tracks) {
-      err = spotify.DownloadTrackList(
-         session, stringListCleanup(strings.Split(*tracks, ",")),
-      )
+   if isStringDefined(*track) {
+      err := spotify.DownloadTrackID(session, *track)
       if err != nil {
-         log.Fatalf("Failed to download tracks: %+v", err)
+         log.Fatalf("Failed to download track %+v", err)
       }
    }
 }

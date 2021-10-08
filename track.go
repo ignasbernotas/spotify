@@ -11,29 +11,6 @@ import (
    "time"
 )
 
-// NEED THIS
-func GetTrackFileAndInfo(ses *Session, trackID string) (*SpotifyTrack, error) {
-   track, err := ses.Mercury().GetTrack(Base62ToHex(trackID))
-   if err != nil {
-      return nil, fmt.Errorf("failed to get track metadata %v", err)
-   }
-   var selectedFile *pb.AudioFile = nil
-   for _, file := range track.GetFile() {
-      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-         selectedFile = file
-      }
-   }
-   if selectedFile == nil {
-      msg := "could not find any files of the song in the specified formats"
-      return nil, fmt.Errorf(msg)
-   }
-   // Synchronously load the track
-   audioFile, err := ses.Player().LoadTrack(selectedFile, track.GetGid())
-   if err != nil {
-      return nil, fmt.Errorf("failed to download the track %v", err)
-   }
-   return GetTrackInfo(audioFile, track), nil
-}
 
 // NEED THIS
 func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
@@ -106,61 +83,59 @@ func saveReaderToNewFile(reader io.Reader, fileName string) error {
 const baseOutputDirectory string = "output"
 
 func createTrackDirectory(track *SpotifyTrack) (string, error) {
-	var mainArtistName string
-	var albumName string
-
-	albumName = track.Album.Name
-
-	if len(track.TrackArtistNames) == 0 {
-		mainArtistName = "Unknown"
-	} else {
-		mainArtistName = track.TrackArtistNames[0]
-	}
-
-	// if theres another disc, make a folder for it
-	if track.TrackDiscNumber > 1 {
-		albumName = path.Join(albumName, "Disc "+strconv.Itoa(int(track.TrackDiscNumber)))
-	}
-
-	newPath := path.Join(baseOutputDirectory, mainArtistName, mainArtistName+" - "+albumName)
-	err := os.MkdirAll(newPath, os.ModePerm)
-
-	return newPath, err
+   var mainArtistName string
+   var albumName string
+   albumName = track.Album.Name
+   if len(track.TrackArtistNames) == 0 {
+      mainArtistName = "Unknown"
+   } else {
+      mainArtistName = track.TrackArtistNames[0]
+   }
+   // if theres another disc, make a folder for it
+   if track.TrackDiscNumber > 1 {
+      albumName = path.Join(
+         albumName, "Disc "+strconv.Itoa(int(track.TrackDiscNumber)),
+      )
+   }
+   newPath := path.Join(
+      baseOutputDirectory, mainArtistName, mainArtistName+" - "+albumName,
+   )
+   err := os.MkdirAll(newPath, os.ModePerm)
+   return newPath, err
 }
 
-func trackOutputFilename(track *SpotifyTrack, outputDirectory string) string {
-	return path.Join(outputDirectory, strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg")
-}
-
-// NEED THIS
-func downloadTrackId(ses *Session, id string) error {
-	track, err := GetTrackFileAndInfo(ses, id)
-	if err != nil {
-		return err
-	}
-
-	outputDirectory, err := createTrackDirectory(track)
-	if err != nil {
-		return err
-	}
-	outputPath := trackOutputFilename(track, outputDirectory)
-
-	fmt.Printf("Downloading: %s - %s (album track #%d) [%s] to %s\n", strings.Join(track.TrackArtistNames, ", "), track.TrackName, track.TrackNumber, id, outputPath)
-
-	err = saveReaderToNewFile(track.AudioFile, outputPath)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// NEED THIS
-func DownloadTrackList(ses *Session, idList []string) error {
-   for _, id := range idList {
-      err := downloadTrackId(ses, id)
-      if err != nil {
-         return fmt.Errorf("failed to download track %q %+v", id, err)
+func DownloadTrackID(ses *Session, id string) error {
+   tra, err := ses.Mercury().GetTrack(Base62ToHex(id))
+   if err != nil {
+      return fmt.Errorf("failed to get track metadata %v", err)
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range tra.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
       }
    }
-   return nil
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := GetTrackInfo(audioFile, tra)
+   outputDirectory, err := createTrackDirectory(track)
+   if err != nil {
+      return err
+   }
+   out := path.Join(
+      outputDirectory,
+      strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg",
+   )
+   fmt.Printf(
+      "%s - %s (album track #%d) [%s] to %s\n",
+      strings.Join(track.TrackArtistNames, ", "), track.TrackName,
+      track.TrackNumber, id, out,
+   )
+   return saveReaderToNewFile(track.AudioFile, out)
 }
