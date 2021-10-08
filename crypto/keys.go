@@ -4,7 +4,6 @@ import (
    "crypto/hmac"
    "crypto/rand"
    "crypto/sha1"
-   "encoding/base64"
    "encoding/json"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
@@ -57,6 +56,7 @@ func Powm(base, exp, modulus *big.Int) *big.Int {
 	return result
 }
 
+// NEED THIS
 func GenerateKeys() PrivateKeys {
 	private := new(big.Int)
 	private.SetBytes(RandomVec(95))
@@ -65,6 +65,7 @@ func GenerateKeys() PrivateKeys {
 	return GenerateKeysFromPrivate(private, nonce)
 }
 
+// NEED THIS
 func GenerateKeysFromPrivate(private *big.Int, nonce []byte) PrivateKeys {
 	DH_GENERATOR := big.NewInt(0x2)
 	DH_PRIME := new(big.Int)
@@ -90,6 +91,7 @@ func GenerateKeysFromPrivate(private *big.Int, nonce []byte) PrivateKeys {
 	}
 }
 
+// NEED THIS
 func (p *PrivateKeys) AddRemoteKey(remote []byte, clientPacket []byte, serverPacket []byte) SharedKeys {
 	remote_be := new(big.Int)
 	remote_be.SetBytes(remote)
@@ -117,32 +119,17 @@ func (p *PrivateKeys) AddRemoteKey(remote []byte, clientPacket []byte, serverPac
 	}
 }
 
-func (p *PrivateKeys) SharedKey(publicKey string) []byte {
-	publicKeyBytes, _ := base64.StdEncoding.DecodeString(publicKey)
-
-	publicBig := new(big.Int)
-	publicBig.SetBytes(publicKeyBytes)
-
-	sharedKey := Powm(publicBig, p.privateKey, p.prime)
-	return sharedKey.Bytes()
-}
-
+// NEED THIS
 func (p *PrivateKeys) PubKey() []byte {
 	return p.publicKey.Bytes()
 }
 
-func (p *PrivateKeys) PrivateKey() *big.Int {
-	return p.privateKey
-}
-
-func (p *PrivateKeys) Prime() *big.Int {
-	return p.prime
-}
-
+// NEED THIS
 func (p *PrivateKeys) ClientNonce() []byte {
 	return p.clientNonce
 }
 
+// NEED THIS
 func (s *SharedKeys) Challenge() []byte {
 	return s.challenge
 }
@@ -168,15 +155,10 @@ type Discovery struct {
    devices     []connectDeviceMdns
 }
 
+// NEED THIS
 func (d *Discovery) LoginBlob() BlobInfo {
 	return d.loginBlob
 }
-
-func (d *Discovery) Devices() []connectDeviceMdns {
-	res := make([]connectDeviceMdns, 0, len(d.devices))
-	return append(res, d.devices...)
-}
-
 
 type Artist struct {
 	Image string `json:"image"`
@@ -199,28 +181,6 @@ type Track struct {
 	Uri        string   `json:"uri"`
 	Duration   int      `json:"duration"`
 	Popularity float32  `json:"popularity"`
-}
-
-type Playlist struct {
-	Name           string `json:"name"`
-	Uri            string `json:"uri"`
-	Image          string `json:"image"`
-	FollowersCount int    `json:"followersCount"`
-	Author         string `json:"author"`
-}
-
-type Profile struct {
-	Name           string `json:"name"`
-	Uri            string `json:"uri"`
-	Image          string `json:"image"`
-	FollowersCount int    `json:"followersCount"`
-}
-
-type Token struct {
-	AccessToken string   `json:"accessToken"`
-	ExpiresIn   int      `json:"expiresIn"`
-	TokenType   string   `json:"tokenType"`
-	Scope       []string `json:"scope"`
 }
 
 func (m *Client) mercuryGet(url string) []byte {

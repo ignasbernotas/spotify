@@ -1,7 +1,6 @@
 package spotify
 
 import (
-   "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
    "io"
@@ -75,7 +74,8 @@ func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
    return serializedTrack
 }
 
-/* use these structs because they are much easier to work with than protobuf structs */
+// use these structs because they are much easier to work with than protobuf
+// structs
 type SpotifyAlbum struct {
 	Name        string
 	Label       string
@@ -103,15 +103,6 @@ func saveReaderToNewFile(reader io.Reader, fileName string) error {
 
 	newFile.Close() // don't defer since there's nothing in between and defer has a performance cost
 	return nil
-}
-
-func NiceJsonFormat(object interface{}) string {
-	jsonBytes, err := json.MarshalIndent(object, "", "    ")
-	if err != nil {
-		return ""
-	} else {
-		return string(jsonBytes)
-	}
 }
 
 const baseOutputDirectory string = "output"
@@ -174,12 +165,4 @@ func DownloadTrackList(session *Session, idList []string) error {
       }
    }
    return nil
-}
-
-func LoginSaved(username string, authData []byte, deviceName string) (*Session, error) {
-	return CoreLoginSaved(username, authData, deviceName)
-}
-
-func LoginOAuth(deviceName string, clientId string, clientSecret string) (*Session, error) {
-	return CoreLoginOAuth(deviceName, clientId, clientSecret)
 }

@@ -52,22 +52,7 @@ func (s *Session) Player() *crypto.Player {
 	return s.player
 }
 
-func (s *Session) Username() string {
-	return s.username
-}
-
-func (s *Session) DeviceId() string {
-	return s.deviceId
-}
-
-func (s *Session) ReusableAuthBlob() []byte {
-	return s.reusableAuthBlob
-}
-
-func (s *Session) Country() string {
-	return s.country
-}
-
+// NEED THIS
 func (s *Session) startConnection() error {
 	conn := crypto.MakePlainConnection(s.tcpCon, s.tcpCon)
 
@@ -125,6 +110,7 @@ func (s *Session) startConnection() error {
 	return nil
 }
 
+// NEED THIS
 func setupSession() (*Session, error) {
 	session := &Session{
 		keys:               crypto.GenerateKeys(),
