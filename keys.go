@@ -12,128 +12,9 @@ import (
    "net/http"
    "strconv"
    "strings"
-   "sync"
    "time"
    cryptoRand "crypto/rand"
 )
-
-func createStream(keys sharedKeys, conn plainConnection) packetStream {
-	s := &ShannonStream{
-		Reader: conn.Reader,
-		Writer: conn.Writer,
-		Mutex:  &sync.Mutex{},
-	}
-	SetKey(&s.RecvCipher, keys.recvKey)
-	SetKey(&s.SendCipher, keys.sendKey)
-	return s
-}
-
-type privateKeys struct {
-   clientNonce []byte
-   generator   *big.Int
-   prime       *big.Int
-   privateKey *big.Int
-   publicKey  *big.Int
-}
-
-type sharedKeys struct {
-	challenge []byte
-	sendKey   []byte
-	recvKey   []byte
-}
-
-func randomVec(count int) []byte {
-	c := count
-	b := make([]byte, c)
-	_, err := cryptoRand.Read(b)
-	if err != nil {
-		log.Fatal("error:", err)
-	}
-	return b
-}
-
-func powm(base, exp, modulus *big.Int) *big.Int {
-	exp2 := big.NewInt(0).SetBytes(exp.Bytes())
-	base2 := big.NewInt(0).SetBytes(base.Bytes())
-	modulus2 := big.NewInt(0).SetBytes(modulus.Bytes())
-	zero := big.NewInt(0)
-	result := big.NewInt(1)
-	temp := new(big.Int)
-
-	for zero.Cmp(exp2) != 0 {
-		if temp.Rem(exp2, big.NewInt(2)).Cmp(zero) != 0 {
-			result = result.Mul(result, base2)
-			result = result.Rem(result, modulus2)
-		}
-		exp2 = exp2.Rsh(exp2, 1)
-		base2 = base2.Mul(base2, base2)
-		base2 = base2.Rem(base2, modulus2)
-	}
-	return result
-}
-
-func (p *privateKeys) addRemoteKey(remote []byte, clientPacket []byte, serverPacket []byte) sharedKeys {
-	remote_be := new(big.Int)
-	remote_be.SetBytes(remote)
-	shared_key := powm(remote_be, p.privateKey, p.prime)
-	data := make([]byte, 0, 100)
-	mac := hmac.New(sha1.New, shared_key.Bytes())
-
-	for i := 1; i < 6; i++ {
-		mac.Write(clientPacket)
-		mac.Write(serverPacket)
-		mac.Write([]byte{uint8(i)})
-		data = append(data, mac.Sum(nil)...)
-		mac.Reset()
-	}
-
-	mac = hmac.New(sha1.New, data[0:0x14])
-	mac.Write(clientPacket)
-	mac.Write(serverPacket)
-
-	return sharedKeys{
-		challenge: mac.Sum(nil),
-		sendKey:   data[0x14:0x34],
-		recvKey:   data[0x34:0x54],
-	}
-}
-
-func (p *privateKeys) pubKey() []byte {
-	return p.publicKey.Bytes()
-}
-
-type blobInfo struct {
-   Username    string
-   DecodedBlob string
-}
-
-// Discovery stores the information about Spotify Connect Discovery Request
-type discovery struct {
-   loginBlob blobInfo
-}
-
-type artist struct {
-	Image string `json:"image"`
-	Name  string `json:"name"`
-	Uri   string `json:"uri"`
-}
-
-type album struct {
-	Artists []artist `json:"artists"`
-	Image   string   `json:"image"`
-	Name    string   `json:"name"`
-	Uri     string   `json:"uri"`
-}
-
-type track struct {
-	Album      album    `json:"album"`
-	Artists    []artist `json:"artists"`
-	Image      string   `json:"image"`
-	Name       string   `json:"name"`
-	Uri        string   `json:"uri"`
-	Duration   int      `json:"duration"`
-	Popularity float32  `json:"popularity"`
-}
 
 const (
    alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -213,7 +94,114 @@ func httpGetHeaders(link string, headers map[string]string) (*http.Response, err
 	return response, nil
 }
 
+func powm(base, exp, modulus *big.Int) *big.Int {
+	exp2 := big.NewInt(0).SetBytes(exp.Bytes())
+	base2 := big.NewInt(0).SetBytes(base.Bytes())
+	modulus2 := big.NewInt(0).SetBytes(modulus.Bytes())
+	zero := big.NewInt(0)
+	result := big.NewInt(1)
+	temp := new(big.Int)
+
+	for zero.Cmp(exp2) != 0 {
+		if temp.Rem(exp2, big.NewInt(2)).Cmp(zero) != 0 {
+			result = result.Mul(result, base2)
+			result = result.Rem(result, modulus2)
+		}
+		exp2 = exp2.Rsh(exp2, 1)
+		base2 = base2.Mul(base2, base2)
+		base2 = base2.Rem(base2, modulus2)
+	}
+	return result
+}
+
+func randomVec(count int) []byte {
+	c := count
+	b := make([]byte, c)
+	_, err := cryptoRand.Read(b)
+	if err != nil {
+		log.Fatal("error:", err)
+	}
+	return b
+}
+
+type album struct {
+	Artists []artist `json:"artists"`
+	Image   string   `json:"image"`
+	Name    string   `json:"name"`
+	Uri     string   `json:"uri"`
+}
+
 type apList struct {
 	ApListNoType []string `json:"ap_list"`
 	ApList       []string `json:"accesspoint"`
+}
+
+type artist struct {
+	Image string `json:"image"`
+	Name  string `json:"name"`
+	Uri   string `json:"uri"`
+}
+
+type blobInfo struct {
+   Username    string
+   DecodedBlob string
+}
+
+// Discovery stores the information about Spotify Connect Discovery Request
+type discovery struct {
+   loginBlob blobInfo
+}
+
+type privateKeys struct {
+   clientNonce []byte
+   generator   *big.Int
+   prime       *big.Int
+   privateKey *big.Int
+   publicKey  *big.Int
+}
+
+func (p *privateKeys) addRemoteKey(remote []byte, clientPacket []byte, serverPacket []byte) sharedKeys {
+	remote_be := new(big.Int)
+	remote_be.SetBytes(remote)
+	shared_key := powm(remote_be, p.privateKey, p.prime)
+	data := make([]byte, 0, 100)
+	mac := hmac.New(sha1.New, shared_key.Bytes())
+
+	for i := 1; i < 6; i++ {
+		mac.Write(clientPacket)
+		mac.Write(serverPacket)
+		mac.Write([]byte{uint8(i)})
+		data = append(data, mac.Sum(nil)...)
+		mac.Reset()
+	}
+
+	mac = hmac.New(sha1.New, data[0:0x14])
+	mac.Write(clientPacket)
+	mac.Write(serverPacket)
+
+	return sharedKeys{
+		challenge: mac.Sum(nil),
+		sendKey:   data[0x14:0x34],
+		recvKey:   data[0x34:0x54],
+	}
+}
+
+func (p *privateKeys) pubKey() []byte {
+	return p.publicKey.Bytes()
+}
+
+type sharedKeys struct {
+	challenge []byte
+	sendKey   []byte
+	recvKey   []byte
+}
+
+type track struct {
+	Album      album    `json:"album"`
+	Artists    []artist `json:"artists"`
+	Image      string   `json:"image"`
+	Name       string   `json:"name"`
+	Uri        string   `json:"uri"`
+	Duration   int      `json:"duration"`
+	Popularity float32  `json:"popularity"`
 }

@@ -177,9 +177,21 @@ type dataFunc func(channel *channel, data []byte) uint16
 
 type headerFunc func(channel *channel, id byte, data *bytes.Reader) uint16
 
+
 type packetStream interface {
 	SendPacket(cmd uint8, data []byte) (err error)
 	RecvPacket() (cmd uint8, buf []byte, err error)
+}
+
+func createStream(keys sharedKeys, conn plainConnection) packetStream {
+	s := &ShannonStream{
+		Reader: conn.Reader,
+		Writer: conn.Writer,
+		Mutex:  &sync.Mutex{},
+	}
+	SetKey(&s.RecvCipher, keys.recvKey)
+	SetKey(&s.SendCipher, keys.sendKey)
+	return s
 }
 
 type plainConnection struct {
