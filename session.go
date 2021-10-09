@@ -196,9 +196,6 @@ func (s *Session) runPollLoop() {
 }
 
 func (s *Session) handle(cmd uint8, data []byte) {
-	// log.Printf("handle, cmd=0x%x data=%x\n", cmd, data)
-	// log.Printf("Handle: 0x%x", cmd)
-
 	switch {
 	case cmd == crypto.PacketPing:
 		// Ping
