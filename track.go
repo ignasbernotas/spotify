@@ -5,20 +5,68 @@ import (
    "github.com/89z/spotify/pb"
    "io"
    "os"
-   "path"
-   "strconv"
-   "strings"
    "time"
 )
 
+// use these structs because they are much easier to work with than protobuf
+// structs
+type SpotifyAlbum struct {
+	Name        string
+	Label       string
+	Genre       []string
+	Date        time.Time
+	ArtistNames []string
+}
 
-// NEED THIS
+type SpotifyTrack struct {
+	AudioFile        io.Reader
+	TrackName        string
+	TrackNumber      int32
+	TrackDuration    int32
+	TrackDiscNumber  int32
+	TrackArtistNames []string
+	Album            SpotifyAlbum
+}
+
+func DownloadTrackID(ses *Session, id string) error {
+   tra, err := ses.Mercury().GetTrack(Base62ToHex(id))
+   if err != nil {
+      return fmt.Errorf("failed to get track metadata %v", err)
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range tra.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := GetTrackInfo(audioFile, tra)
+   fmt.Printf("%+v\n", track)
+   file, err := os.Create(track.TrackName + ".ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(track.AudioFile); err != nil {
+      return err
+   }
+   return nil
+}
+
 func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
    serializedTrack := &SpotifyTrack{}
    serializedTrack.AudioFile = audioFile
    serializedTrack.TrackName = track.GetName()
    serializedTrack.TrackNumber = track.GetNumber()
-   serializedTrack.TrackDuration = (track.GetDuration() / 1000) // convert ms to seconds
+   // convert ms to seconds
+   serializedTrack.TrackDuration = (track.GetDuration() / 1000)
    serializedTrack.TrackDiscNumber = track.GetDiscNumber()
    album := track.GetAlbum()
    if album != nil {
@@ -47,95 +95,4 @@ func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
       )
    }
    return serializedTrack
-}
-
-// use these structs because they are much easier to work with than protobuf
-// structs
-type SpotifyAlbum struct {
-	Name        string
-	Label       string
-	Genre       []string
-	Date        time.Time
-	ArtistNames []string
-}
-
-type SpotifyTrack struct {
-	AudioFile        io.Reader
-	TrackName        string
-	TrackNumber      int32
-	TrackDuration    int32
-	TrackDiscNumber  int32
-	TrackArtistNames []string
-	Album            SpotifyAlbum
-}
-
-func saveReaderToNewFile(reader io.Reader, fileName string) error {
-	newFile, err := os.Create(fileName)
-	if err != nil {
-		return fmt.Errorf("failed to create file with path %s: %s", fileName, err)
-	}
-	io.Copy(newFile, reader) // copy the reader to the writer
-
-	newFile.Close() // don't defer since there's nothing in between and defer has a performance cost
-	return nil
-}
-
-const baseOutputDirectory string = "output"
-
-func createTrackDirectory(track *SpotifyTrack) (string, error) {
-   var mainArtistName string
-   var albumName string
-   albumName = track.Album.Name
-   if len(track.TrackArtistNames) == 0 {
-      mainArtistName = "Unknown"
-   } else {
-      mainArtistName = track.TrackArtistNames[0]
-   }
-   // if theres another disc, make a folder for it
-   if track.TrackDiscNumber > 1 {
-      albumName = path.Join(
-         albumName, "Disc "+strconv.Itoa(int(track.TrackDiscNumber)),
-      )
-   }
-   newPath := path.Join(
-      baseOutputDirectory, mainArtistName, mainArtistName+" - "+albumName,
-   )
-   err := os.MkdirAll(newPath, os.ModePerm)
-   return newPath, err
-}
-
-func DownloadTrackID(ses *Session, id string) error {
-   tra, err := ses.Mercury().GetTrack(Base62ToHex(id))
-   if err != nil {
-      return fmt.Errorf("failed to get track metadata %v", err)
-   }
-   var selectedFile *pb.AudioFile = nil
-   for _, file := range tra.GetFile() {
-      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-         selectedFile = file
-      }
-   }
-   if selectedFile == nil {
-      msg := "could not find any files of the song in the specified formats"
-      return fmt.Errorf(msg)
-   }
-   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
-   if err != nil {
-      return fmt.Errorf("failed to download the track %v", err)
-   }
-   track := GetTrackInfo(audioFile, tra)
-   outputDirectory, err := createTrackDirectory(track)
-   if err != nil {
-      return err
-   }
-   out := path.Join(
-      outputDirectory,
-      strconv.Itoa(int(track.TrackNumber))+" - "+track.TrackName+".ogg",
-   )
-   fmt.Printf(
-      "%s - %s (album track #%d) [%s] to %s\n",
-      strings.Join(track.TrackArtistNames, ", "), track.TrackName,
-      track.TrackNumber, id, out,
-   )
-   return saveReaderToNewFile(track.AudioFile, out)
 }
