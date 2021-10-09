@@ -37,7 +37,7 @@ func createMercury(stream packetStream) *client {
 }
 
 func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
-	resp, err := m.inter.ParseResponse(cmd, reader)
+	resp, err := m.inter.parseResponse(cmd, reader)
 	if err != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func (m *client) mercuryGet(url string) []byte {
          Method:  "GET", Payload: [][]byte{}, Uri: url,
       },
       func(res response) {
-         done <- res.CombinePayload()
+         done <- res.combinePayload()
       },
    )
    result := <-done
@@ -97,7 +97,7 @@ func (m *client) getTrack(id string) (*pb.Track, error) {
 }
 
 func (m *client) request(req request, cb callback) (err error) {
-   seq, err := m.inter.Request(req)
+   seq, err := m.inter.request(req)
    if err != nil {
       if cb != nil {
          cb(response{StatusCode: 500})
@@ -143,7 +143,7 @@ func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, erro
 }
 
 func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
-   seqInt, seq := p.mercury.inter.NextSeq()
+   seqInt, seq := p.mercury.inter.nextSeq()
    p.seqChans.Store(seqInt, make(chan []byte))
    req := buildKeyRequest(seq, trackId, fileId)
    err := p.stream.SendPacket(packetRequestKey, req)
