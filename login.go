@@ -13,7 +13,7 @@ import (
 
 func Login(username string, password string, deviceName string) (*Session, error) {
    private := new(big.Int)
-   private.SetBytes(RandomVec(95))
+   private.SetBytes(randomVec(95))
    DH_GENERATOR := big.NewInt(0x2)
    DH_PRIME := new(big.Int)
    // datatracker.ietf.org/doc/html/rfc2412#appendix-E.1
@@ -28,15 +28,15 @@ func Login(username string, password string, deviceName string) (*Session, error
       0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    })
    ses := &Session{
-      keys: PrivateKeys{
-         clientNonce: RandomVec(0x10),
+      keys: privateKeys{
+         clientNonce: randomVec(0x10),
          generator:   DH_GENERATOR,
          prime:       DH_PRIME,
          privateKey: private,
-         publicKey:  Powm(DH_GENERATOR, private, DH_PRIME),
+         publicKey:  powm(DH_GENERATOR, private, DH_PRIME),
       },
       mercuryConstructor: createMercury,
-      shannonConstructor: CreateStream,
+      shannonConstructor: createStream,
    }
    err := ses.doConnect()
    if err != nil {
@@ -49,8 +49,8 @@ func Login(username string, password string, deviceName string) (*Session, error
 }
 
 func DownloadTrackID(ses *Session, id string) error {
-   hex := fmt.Sprintf("%x", Convert62(id))
-   tra, err := ses.Mercury().getTrack(hex)
+   hex := fmt.Sprintf("%x", convert62(id))
+   tra, err := ses.mercury.getTrack(hex)
    if err != nil {
       return fmt.Errorf("failed to get track metadata %v", err)
    }
@@ -64,7 +64,7 @@ func DownloadTrackID(ses *Session, id string) error {
       msg := "could not find any files of the song in the specified formats"
       return fmt.Errorf(msg)
    }
-   audioFile, err := ses.Player().loadTrack(selectedFile, tra.GetGid())
+   audioFile, err := ses.player.loadTrack(selectedFile, tra.GetGid())
    if err != nil {
       return fmt.Errorf("failed to download the track %v", err)
    }
@@ -82,7 +82,7 @@ func DownloadTrackID(ses *Session, id string) error {
 }
 
 func (s *Session) loginSession(username string, password string, deviceName string) error {
-	s.deviceId = GenerateDeviceId(deviceName)
+	s.deviceId = generateDeviceId(deviceName)
 	s.deviceName = deviceName
 
 	err := s.startConnection()
@@ -94,28 +94,24 @@ func (s *Session) loginSession(username string, password string, deviceName stri
 }
 
 func (s *Session) doLogin(packet []byte, username string) error {
-	err := s.stream.SendPacket(packetLogin, packet)
-	if err != nil {
-		log.Fatal("bad shannon write", err)
-	}
-
-	// Pll once for authentication response
-	welcome, err := s.handleLogin()
-	if err != nil {
-		return err
-	}
-
-	// Store the few interesting values
-	s.username = welcome.GetCanonicalUsername()
-	if s.username == "" {
-		s.username = s.discovery.LoginBlob().Username
-	}
-	s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
-
-	// Poll for acknowledge before loading - needed for gopherjs
-	go s.runPollLoop()
-
-	return nil
+   err := s.stream.SendPacket(packetLogin, packet)
+   if err != nil {
+   log.Fatal("bad shannon write", err)
+   }
+   // Pll once for authentication response
+   welcome, err := s.handleLogin()
+   if err != nil {
+   return err
+   }
+   // Store the few interesting values
+   s.username = welcome.GetCanonicalUsername()
+   if s.username == "" {
+   s.username = s.discovery.loginBlob.Username
+   }
+   s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
+   // Poll for acknowledge before loading - needed for gopherjs
+   go s.runPollLoop()
+   return nil
 }
 
 func (s *Session) handleLogin() (*pb.APWelcome, error) {

@@ -14,16 +14,15 @@ import (
 type Session struct {
 	/// Constructor references
 	mercuryConstructor func(conn packetStream) *client
-	shannonConstructor func(keys SharedKeys, conn plainConnection) packetStream
-
+	shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
 	/// Managers and helpers
 	stream packetStream
 	mercury *client
-	discovery *Discovery
+	discovery *discovery
 	player *player
 	tcpCon io.ReadWriter
 	// keys are the encryption keys used to communicate with the server
-	keys PrivateKeys
+	keys privateKeys
 
 	/// State and variables
 	// servers for this session
@@ -35,25 +34,9 @@ type Session struct {
 	country string
 }
 
-func (s *Session) Stream() packetStream {
-	return s.stream
-}
-
-func (s *Session) Discovery() *Discovery {
-	return s.discovery
-}
-
-func (s *Session) Mercury() *client {
-	return s.mercury
-}
-
-func (s *Session) Player() *player {
-	return s.player
-}
-
 func (s *Session) startConnection() error {
    conn := makePlainConnection(s.tcpCon, s.tcpCon)
-   helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
+   helloMessage := makeHelloMessage(s.keys.pubKey(), s.keys.clientNonce)
    initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
    if err != nil {
       log.Fatal("Error writing client hello", err)
@@ -72,15 +55,17 @@ func (s *Session) startConnection() error {
       return err
    }
    remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
-   sharedKeys := s.keys.AddRemoteKey(remoteKey, initClientPacket, initServerPacket)
+   sharedKeys := s.keys.addRemoteKey(
+      remoteKey, initClientPacket, initServerPacket,
+   )
    plainResponse := &pb.ClientResponsePlaintext{
-   LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
-   DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
-   Hmac: sharedKeys.Challenge(),
-   },
-   },
-   PowResponse:    &pb.PoWResponseUnion{},
-   CryptoResponse: &pb.CryptoResponseUnion{},
+      CryptoResponse: &pb.CryptoResponseUnion{},
+      LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
+            Hmac: sharedKeys.challenge,
+         },
+      },
+      PowResponse:    &pb.PoWResponseUnion{},
    }
    plainResponseMessage, err := proto.Marshal(plainResponse)
    if err != nil {
@@ -99,19 +84,17 @@ func (s *Session) startConnection() error {
 }
 
 func (s *Session) doConnect() error {
-	apUrl, err := APResolve()
-	if err != nil {
-		log.Println("Failed to get ap url", err)
-		return err
-	}
-
-	s.tcpCon, err = net.Dial("tcp", apUrl)
-	if err != nil {
-		log.Println("Failed to connect:", err)
-		return err
-	}
-
-	return err
+   apUrl, err := apResolve()
+   if err != nil {
+   log.Println("Failed to get ap url", err)
+   return err
+   }
+   s.tcpCon, err = net.Dial("tcp", apUrl)
+   if err != nil {
+   log.Println("Failed to connect:", err)
+   return err
+   }
+   return err
 }
 
 func (s *Session) disconnect() {
