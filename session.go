@@ -14,14 +14,14 @@ import (
 
 type Session struct {
 	/// Constructor references
-	mercuryConstructor func(conn crypto.PacketStream) *crypto.Client
+	mercuryConstructor func(conn crypto.PacketStream) *Client
 	shannonConstructor func(keys SharedKeys, conn crypto.PlainConnection) crypto.PacketStream
 
 	/// Managers and helpers
 	stream crypto.PacketStream
-	mercury *crypto.Client
+	mercury *Client
 	discovery *Discovery
-	player *crypto.Player
+	player *Player
 	tcpCon io.ReadWriter
 	// keys are the encryption keys used to communicate with the server
 	keys PrivateKeys
@@ -44,11 +44,11 @@ func (s *Session) Discovery() *Discovery {
 	return s.discovery
 }
 
-func (s *Session) Mercury() *crypto.Client {
+func (s *Session) Mercury() *Client {
 	return s.mercury
 }
 
-func (s *Session) Player() *crypto.Player {
+func (s *Session) Player() *Player {
 	return s.player
 }
 
@@ -105,7 +105,7 @@ func (s *Session) startConnection() error {
 	s.stream = s.shannonConstructor(sharedKeys, conn)
 	s.mercury = s.mercuryConstructor(s.stream)
 
-	s.player = crypto.CreatePlayer(s.stream, s.mercury)
+	s.player = CreatePlayer(s.stream, s.mercury)
 
 	return nil
 }
@@ -114,7 +114,7 @@ func (s *Session) startConnection() error {
 func setupSession() (*Session, error) {
 	session := &Session{
 		keys:               GenerateKeys(),
-		mercuryConstructor: crypto.CreateMercury,
+		mercuryConstructor: CreateMercury,
 		shannonConstructor: CreateStream,
 	}
 	err := session.doConnect()

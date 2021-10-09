@@ -10,6 +10,13 @@ import (
    "sync"
 )
 
+type Internal struct {
+	seqLock sync.Mutex
+	nextSeq uint32
+	Pending map[string]Pending
+	Stream  PacketStream
+}
+
 type Response struct {
 	HeaderData []byte
 	Uri        string
@@ -32,12 +39,6 @@ type Pending struct {
 	partial []byte
 }
 
-type Internal struct {
-	seqLock sync.Mutex
-	nextSeq uint32
-	pending map[string]Pending
-	stream  PacketStream
-}
 
 func (m *Internal) NextSeq() (uint32, []byte) {
 	m.seqLock.Lock()
@@ -51,7 +52,7 @@ func (m *Internal) NextSeq() (uint32, []byte) {
 	return seqInt, seq
 }
 
-func (m *Internal) request(req Request) (seqKey string, err error) {
+func (m *Internal) Request(req Request) (seqKey string, err error) {
 	_, seq := m.NextSeq()
 	data, err := encodeRequest(seq, req)
 	if err != nil {
@@ -68,7 +69,7 @@ func (m *Internal) request(req Request) (seqKey string, err error) {
 		cmd = 0xb2
 	}
 
-	err = m.stream.SendPacket(cmd, data)
+	err = m.Stream.SendPacket(cmd, data)
 	if err != nil {
 		return "", err
 	}
@@ -167,14 +168,14 @@ func handleHead(reader io.Reader) (seq []byte, flags uint8, count uint16, err er
 	return
 }
 
-func (m *Internal) parseResponse(cmd uint8, reader io.Reader) (response *Response, err error) {
+func (m *Internal) ParseResponse(cmd uint8, reader io.Reader) (response *Response, err error) {
 	seq, flags, count, err := handleHead(reader)
 	if err != nil {
 		fmt.Println("error handling response", err)
 		return
 	}
 	seqKey := string(seq)
-	pending, ok := m.pending[seqKey]
+	pending, ok := m.Pending[seqKey]
 	if !ok && cmd == 0xb5 {
 		pending = Pending{}
 	}
@@ -198,10 +199,10 @@ func (m *Internal) parseResponse(cmd uint8, reader io.Reader) (response *Respons
 	}
 
 	if flags == 1 {
-		delete(m.pending, seqKey)
+		delete(m.Pending, seqKey)
 		return m.completeRequest(cmd, pending, seqKey)
 	} else {
-		m.pending[seqKey] = pending
+		m.Pending[seqKey] = pending
 	}
 	return nil, nil
 }
@@ -240,15 +241,15 @@ func (res *Response) CombinePayload() []byte {
 	return body
 }
 
-const kChunkSize = 32768 // In number of words (so actual byte size is kChunkSize*4, aka. kChunkByteSize)
-const kChunkByteSize = kChunkSize * 4
-const kOggSkipBytes = 167 // Number of bytes to skip at the beginning of the file
+const ChunkSizeK = 32768
+const ChunkByteSizeK = ChunkSizeK * 4
 
-// min helper function for integers
-func min(a, b int) int {
+// Number of bytes to skip at the beginning of the file
+const OggSkipBytesK = 167
+
+func Min(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
-
