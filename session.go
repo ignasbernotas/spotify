@@ -13,14 +13,14 @@ import (
 
 type Session struct {
 	/// Constructor references
-	mercuryConstructor func(conn PacketStream) *Client
+	mercuryConstructor func(conn PacketStream) *client
 	shannonConstructor func(keys SharedKeys, conn PlainConnection) PacketStream
 
 	/// Managers and helpers
 	stream PacketStream
-	mercury *Client
+	mercury *client
 	discovery *Discovery
-	player *Player
+	player *player
 	tcpCon io.ReadWriter
 	// keys are the encryption keys used to communicate with the server
 	keys PrivateKeys
@@ -43,11 +43,11 @@ func (s *Session) Discovery() *Discovery {
 	return s.discovery
 }
 
-func (s *Session) Mercury() *Client {
+func (s *Session) Mercury() *client {
 	return s.mercury
 }
 
-func (s *Session) Player() *Player {
+func (s *Session) Player() *player {
 	return s.player
 }
 
@@ -200,11 +200,10 @@ func (s *Session) handle(cmd uint8, data []byte) {
 		s.player.HandleCmd(cmd, data)
 
 	case cmd == PacketCountryCode:
-		// Handle country code
 		s.country = fmt.Sprintf("%s", data)
 
 	case 0xb2 <= cmd && cmd <= 0xb6:
-		err := s.mercury.Handle(cmd, bytes.NewReader(data))
+		err := s.mercury.handle(cmd, bytes.NewReader(data))
 		if err != nil {
 			log.Fatal("Handle 0xbx", err)
 		}

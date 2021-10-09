@@ -35,7 +35,7 @@ func Login(username string, password string, deviceName string) (*Session, error
          privateKey: private,
          publicKey:  Powm(DH_GENERATOR, private, DH_PRIME),
       },
-      mercuryConstructor: CreateMercury,
+      mercuryConstructor: createMercury,
       shannonConstructor: CreateStream,
    }
    err := ses.doConnect()
@@ -50,7 +50,7 @@ func Login(username string, password string, deviceName string) (*Session, error
 
 func DownloadTrackID(ses *Session, id string) error {
    hex := fmt.Sprintf("%x", Convert62(id))
-   tra, err := ses.Mercury().GetTrack(hex)
+   tra, err := ses.Mercury().getTrack(hex)
    if err != nil {
       return fmt.Errorf("failed to get track metadata %v", err)
    }

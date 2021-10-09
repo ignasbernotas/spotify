@@ -15,15 +15,15 @@ import (
    "sync"
 )
 
-type Client struct {
+type client struct {
 	subscriptions map[string][]chan Response
 	callbacks     map[string]Callback
 	inter      *Internal
 	cbMu          sync.Mutex
 }
 
-func CreateMercury(stream PacketStream) *Client {
-	client := &Client{
+func createMercury(stream PacketStream) *client {
+	client := &client{
 		callbacks:     make(map[string]Callback),
 		subscriptions: make(map[string][]chan Response),
 		inter: &Internal{
@@ -34,7 +34,7 @@ func CreateMercury(stream PacketStream) *Client {
 	return client
 }
 
-func (m *Client) Handle(cmd uint8, reader io.Reader) (err error) {
+func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
 	resp, err := m.inter.ParseResponse(cmd, reader)
 	if err != nil {
 		return
@@ -61,31 +61,31 @@ func (m *Client) Handle(cmd uint8, reader io.Reader) (err error) {
 
 }
 
-func (m *Client) mercuryGet(url string) []byte {
-	done := make(chan []byte)
-	go m.Request(Request{
-		Method:  "GET",
-		Uri:     url,
-		Payload: [][]byte{},
-	}, func(res Response) {
-		done <- res.CombinePayload()
-	})
-
-	result := <-done
-	return result
+func (m *client) mercuryGet(url string) []byte {
+   done := make(chan []byte)
+   go m.request(
+      Request{
+         Method:  "GET", Payload: [][]byte{}, Uri: url,
+      },
+      func(res Response) {
+         done <- res.CombinePayload()
+      },
+   )
+   result := <-done
+   return result
 }
 
-func (m *Client) mercuryGetJson(url string, result interface{}) error {
+func (m *client) mercuryGetJson(url string, result interface{}) error {
    data := m.mercuryGet(url)
    return json.Unmarshal(data, result)
 }
 
-func (m *Client) mercuryGetProto(url string, result proto.Message) error {
+func (m *client) mercuryGetProto(url string, result proto.Message) error {
    data := m.mercuryGet(url)
    return proto.Unmarshal(data, result)
 }
 
-func (m *Client) GetTrack(id string) (*pb.Track, error) {
+func (m *client) getTrack(id string) (*pb.Track, error) {
    result := new(pb.Track)
    err := m.mercuryGetProto("hm://metadata/4/track/" + id, result)
    if err != nil {
@@ -94,7 +94,7 @@ func (m *Client) GetTrack(id string) (*pb.Track, error) {
    return result, nil
 }
 
-func (m *Client) Request(req Request, cb Callback) (err error) {
+func (m *client) request(req Request, cb Callback) (err error) {
    seq, err := m.inter.Request(req)
    if err != nil {
       if cb != nil {
@@ -108,21 +108,17 @@ func (m *Client) Request(req Request, cb Callback) (err error) {
    return nil
 }
 
-func (m *Client) NextSeqWithInt() (uint32, []byte) {
-	return m.inter.NextSeq()
-}
-
-type Player struct {
+type player struct {
    chanLock    sync.Mutex
    channels    map[uint16]*Channel
-   mercury  *Client
+   mercury  *client
    nextChan    uint16
    seqChans    sync.Map
    stream   PacketStream
 }
 
-func CreatePlayer(conn PacketStream, client *Client) *Player {
-	return &Player{
+func CreatePlayer(conn PacketStream, client *client) *player {
+	return &player{
 		stream:   conn,
 		mercury:  client,
 		channels: map[uint16]*Channel{},
@@ -132,7 +128,7 @@ func CreatePlayer(conn PacketStream, client *Client) *Player {
 	}
 }
 
-func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
+func (p *player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
    audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
    // Start loading the audio key
    err := audioFile.loadKey(trackId)
@@ -144,24 +140,22 @@ func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, erro
    return audioFile, nil
 }
 
-func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
-	seqInt, seq := p.mercury.NextSeqWithInt()
-	p.seqChans.Store(seqInt, make(chan []byte))
-	req := BuildKeyRequest(seq, trackId, fileId)
-	err := p.stream.SendPacket(PacketRequestKey, req)
-	if err != nil {
-		log.Println("Error while sending packet", err)
-		return nil, err
-	}
-
-	channel, _ := p.seqChans.Load(seqInt)
-	key := <-channel.(chan []byte)
-	p.seqChans.Delete(seqInt)
-
-	return key, nil
+func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
+   seqInt, seq := p.mercury.inter.NextSeq()
+   p.seqChans.Store(seqInt, make(chan []byte))
+   req := BuildKeyRequest(seq, trackId, fileId)
+   err := p.stream.SendPacket(PacketRequestKey, req)
+   if err != nil {
+   log.Println("Error while sending packet", err)
+      return nil, err
+   }
+   channel, _ := p.seqChans.Load(seqInt)
+   key := <-channel.(chan []byte)
+   p.seqChans.Delete(seqInt)
+   return key, nil
 }
 
-func (p *Player) AllocateChannel() *Channel {
+func (p *player) AllocateChannel() *Channel {
 	p.chanLock.Lock()
 	channel := NewChannel(p.nextChan, p.releaseChannel)
 	p.nextChan++
@@ -171,7 +165,7 @@ func (p *Player) AllocateChannel() *Channel {
 	return channel
 }
 
-func (p *Player) HandleCmd(cmd byte, data []byte) {
+func (p *player) HandleCmd(cmd byte, data []byte) {
 	switch {
 	case cmd == PacketAesKey:
 		dataReader := bytes.NewReader(data)
@@ -202,7 +196,7 @@ func (p *Player) HandleCmd(cmd byte, data []byte) {
 	}
 }
 
-func (p *Player) releaseChannel(channel *Channel) {
+func (p *player) releaseChannel(channel *Channel) {
 	p.chanLock.Lock()
 	delete(p.channels, channel.Num)
 	p.chanLock.Unlock()
@@ -213,7 +207,7 @@ type AudioFile struct {
 	lock           sync.RWMutex
 	format         pb.AudioFile_Format
 	fileId         []byte
-	player         *Player
+	player         *player
 	cipher         cipher.Block
 	decrypter      *AudioFileDecrypter
 	responseChan   chan []byte
@@ -225,7 +219,7 @@ type AudioFile struct {
 	chunksLoading  bool
 }
 
-func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *Player) *AudioFile {
+func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *AudioFile {
 	return &AudioFile{
 		player:        player,
 		fileId:        fileId,
@@ -255,13 +249,7 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 		// We're at the end
 		return 0, io.EOF
 	}
-
-	// Ensure at least the next required chunk is fully available, otherwise request and wait for it. Even if we
-	// don't have the entire data required for len(buf) (because it overlaps two or more chunks, and only the first
-	// one is available), we can still return the data already available, we don't need to wait to fill the entire
-	// buffer.
 	chunkIdx := a.chunkIndexAtByte(a.cursor)
-
 	for totalWritten < length {
 		// fmt.Printf("[audiofile] Cursor: %d, len: %d, matching chunk %d\n", a.cursor, length, chunkIdx)
 
@@ -270,7 +258,6 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 			eof = true
 			break
 		} else if !a.hasChunk(chunkIdx) {
-			// A chunk we are looking to read is unavailable, request it so that we can return it on the next Read call
 			a.requestChunk(chunkIdx)
 			// fmt.Printf("[audiofile] Doesn't have chunk %d yet, queuing\n", chunkIdx)
 			break
