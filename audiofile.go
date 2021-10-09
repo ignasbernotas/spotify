@@ -15,6 +15,8 @@ import (
    "sync"
 )
 
+const chunkSizeK = 32768
+
 type client struct {
 	subscriptions map[string][]chan Response
 	callbacks     map[string]Callback
@@ -110,7 +112,7 @@ func (m *client) request(req Request, cb Callback) (err error) {
 
 type player struct {
    chanLock    sync.Mutex
-   channels    map[uint16]*Channel
+   channels    map[uint16]*channel
    mercury  *client
    nextChan    uint16
    seqChans    sync.Map
@@ -121,14 +123,14 @@ func createPlayer(conn PacketStream, client *client) *player {
 	return &player{
 		stream:   conn,
 		mercury:  client,
-		channels: map[uint16]*Channel{},
+		channels: map[uint16]*channel{},
 		seqChans: sync.Map{},
 		chanLock: sync.Mutex{},
 		nextChan: 0,
 	}
 }
 
-func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
+func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, error) {
    audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
    // Start loading the audio key
    err := audioFile.loadKey(trackId)
@@ -143,7 +145,7 @@ func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, erro
 func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    seqInt, seq := p.mercury.inter.NextSeq()
    p.seqChans.Store(seqInt, make(chan []byte))
-   req := BuildKeyRequest(seq, trackId, fileId)
+   req := buildKeyRequest(seq, trackId, fileId)
    err := p.stream.SendPacket(PacketRequestKey, req)
    if err != nil {
    log.Println("Error while sending packet", err)
@@ -155,8 +157,7 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    return key, nil
 }
 
-
-func (p *player) HandleCmd(cmd byte, data []byte) {
+func (p *player) handleCmd(cmd byte, data []byte) {
 	switch {
 	case cmd == PacketAesKey:
 		dataReader := bytes.NewReader(data)
@@ -180,51 +181,52 @@ func (p *player) HandleCmd(cmd byte, data []byte) {
 		binary.Read(dataReader, binary.BigEndian, &channel)
 
 		if val, ok := p.channels[channel]; ok {
-			val.HandlePacket(data[2:])
+			val.handlePacket(data[2:])
 		} else {
 			fmt.Printf("Unknown channel!\n")
 		}
 	}
 }
 
-func (p *player) releaseChannel(channel *Channel) {
+func (p *player) releaseChannel(channel *channel) {
 	p.chanLock.Lock()
 	delete(p.channels, channel.Num)
 	p.chanLock.Unlock()
 }
 
-type AudioFile struct {
-	size           uint32
-	lock           sync.RWMutex
-	format         pb.AudioFile_Format
-	fileId         []byte
-	player         *player
-	cipher         cipher.Block
-	decrypter      *AudioFileDecrypter
-	responseChan   chan []byte
-	chunkLock      sync.RWMutex
-	chunkLoadOrder []int
-	data           []byte
-	cursor         int
-	chunks         map[int]bool
-	chunksLoading  bool
+type audioFile struct {
+   chunkLoadOrder []int
+   chunkLock      sync.RWMutex
+   chunks         map[int]bool
+   chunksLoading  bool
+   cipher         cipher.Block
+   cursor         int
+   data           []byte
+   decrypter      *audioFileDecrypter
+   fileId         []byte
+   format         pb.AudioFile_Format
+   lock           sync.RWMutex
+   player         *player
+   responseChan   chan []byte
+   size           uint32
 }
 
-func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *AudioFile {
-	return &AudioFile{
-		player:        player,
-		fileId:        fileId,
-		format:        format,
-		decrypter:     NewAudioFileDecrypter(),
-		size:          ChunkSizeK, // Set an initial size to fetch the first chunk regardless of the actual size
-		responseChan:  make(chan []byte),
-		chunks:        map[int]bool{},
-		chunkLock:     sync.RWMutex{},
-		chunksLoading: false,
-	}
+func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
+   return &audioFile{
+      chunkLock:     sync.RWMutex{},
+      chunks:        map[int]bool{},
+      chunksLoading: false,
+      decrypter:     NewAudioFileDecrypter(),
+      fileId:        fileId,
+      format:        format,
+      player:        player,
+      responseChan:  make(chan []byte),
+      // Set an initial size to fetch the first chunk regardless of the actual size
+      size: chunkSizeK,
+   }
 }
 
-func (a *AudioFile) Read(buf []byte) (int, error) {
+func (a *audioFile) Read(buf []byte) (int, error) {
 	length := len(buf)
 	outBufCursor := 0
 	totalWritten := 0
@@ -242,15 +244,12 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 	}
 	chunkIdx := a.chunkIndexAtByte(a.cursor)
 	for totalWritten < length {
-		// fmt.Printf("[audiofile] Cursor: %d, len: %d, matching chunk %d\n", a.cursor, length, chunkIdx)
-
 		if chunkIdx >= a.totalChunks() {
 			// We've reached the last chunk, so we can signal EOF
 			eof = true
 			break
 		} else if !a.hasChunk(chunkIdx) {
 			a.requestChunk(chunkIdx)
-			// fmt.Printf("[audiofile] Doesn't have chunk %d yet, queuing\n", chunkIdx)
 			break
 		} else {
 			// cursorEnd is the ending position in the output buffer. It is either the current outBufCursor + the size
@@ -291,7 +290,7 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 	return totalWritten, err
 }
 
-func (a *AudioFile) headerOffset() int {
+func (a *audioFile) headerOffset() int {
 	switch {
 	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
 		a.format == pb.AudioFile_OGG_VORBIS_320:
@@ -302,11 +301,11 @@ func (a *AudioFile) headerOffset() int {
 	}
 }
 
-func (a *AudioFile) chunkIndexAtByte(byteIndex int) int {
-	return int(math.Floor(float64(byteIndex) / float64(ChunkSizeK) / 4.0))
+func (a *audioFile) chunkIndexAtByte(byteIndex int) int {
+	return int(math.Floor(float64(byteIndex) / float64(chunkSizeK) / 4.0))
 }
 
-func (a *AudioFile) hasChunk(index int) bool {
+func (a *audioFile) hasChunk(index int) bool {
 	a.chunkLock.RLock()
 	has, ok := a.chunks[index]
 	a.chunkLock.RUnlock()
@@ -314,7 +313,7 @@ func (a *AudioFile) hasChunk(index int) bool {
 	return has && ok
 }
 
-func (a *AudioFile) loadKey(trackId []byte) error {
+func (a *audioFile) loadKey(trackId []byte) error {
 	key, err := a.player.loadTrackKey(trackId, a.fileId)
 	if err != nil {
 		fmt.Printf("[audiofile] Unable to load key: %s\n", err)
@@ -329,14 +328,14 @@ func (a *AudioFile) loadKey(trackId []byte) error {
 	return nil
 }
 
-func (a *AudioFile) totalChunks() int {
+func (a *audioFile) totalChunks() int {
 	a.lock.RLock()
 	size := a.size
 	a.lock.RUnlock()
-	return int(math.Ceil(float64(size) / float64(ChunkSizeK) / 4.0))
+	return int(math.Ceil(float64(size) / float64(chunkSizeK) / 4.0))
 }
 
-func (a *AudioFile) loadChunks() {
+func (a *audioFile) loadChunks() {
 	// By default, we will load the track in the normal order. If we need to skip to a specific piece of audio,
 	// we will prepend the chunks needed so that we load them as soon as possible. Since loadNextChunk will check
 	// if a chunk is already loaded (using hasChunk), we won't be downloading the same chunk multiple times.
@@ -348,7 +347,7 @@ func (a *AudioFile) loadChunks() {
 	go a.loadNextChunk()
 }
 
-func (a *AudioFile) requestChunk(chunkIndex int) {
+func (a *audioFile) requestChunk(chunkIndex int) {
 	a.chunkLock.RLock()
 
 	// Check if we don't already have this chunk in the 2 next chunks requested
@@ -370,19 +369,19 @@ func (a *AudioFile) requestChunk(chunkIndex int) {
 	a.chunkLock.Unlock()
 }
 
-func (a *AudioFile) loadChunk(chunkIndex int) error {
+func (a *audioFile) loadChunk(chunkIndex int) error {
    a.player.chanLock.Lock()
-   channel := NewChannel(a.player.nextChan, a.player.releaseChannel)
+   channel := newChannel(a.player.nextChan, a.player.releaseChannel)
    a.player.nextChan++
    a.player.channels[channel.Num] = channel
    a.player.chanLock.Unlock()
    channel.OnHeader = a.onChannelHeader
    channel.OnData = a.onChannelData
-   chunkOffsetStart := uint32(chunkIndex * ChunkSizeK)
-   chunkOffsetEnd := uint32((chunkIndex + 1) * ChunkSizeK)
+   chunkOffsetStart := uint32(chunkIndex * chunkSizeK)
+   chunkOffsetEnd := uint32((chunkIndex + 1) * chunkSizeK)
    err := a.player.stream.SendPacket(
       PacketStreamChunk,
-      BuildAudioChunkRequest(
+      buildAudioChunkRequest(
          channel.Num, a.fileId, chunkOffsetStart, chunkOffsetEnd,
       ),
    )
@@ -405,7 +404,7 @@ func (a *AudioFile) loadChunk(chunkIndex int) error {
    return nil
 }
 
-func (a *AudioFile) loadNextChunk() {
+func (a *audioFile) loadNextChunk() {
    a.chunkLock.Lock()
    if a.chunksLoading {
       // We are already loading a chunk, don't need to start another goroutine
@@ -429,7 +428,7 @@ func (a *AudioFile) loadNextChunk() {
    }
 }
 
-func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
+func (a *audioFile) putEncryptedChunk(index int, data []byte) {
 	byteIndex := index * ChunkByteSizeK
 	a.decrypter.DecryptAudioWithBlock(index, a.cipher, data, a.data[byteIndex:byteIndex+len(data)])
 
@@ -438,7 +437,7 @@ func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
 	a.chunkLock.Unlock()
 }
 
-func (a *AudioFile) onChannelHeader(channel *Channel, id byte, data *bytes.Reader) uint16 {
+func (a *audioFile) onChannelHeader(channel *channel, id byte, data *bytes.Reader) uint16 {
    read := uint16(0)
    if id == 0x3 {
       var size uint32
@@ -466,7 +465,7 @@ func (a *AudioFile) onChannelHeader(channel *Channel, id byte, data *bytes.Reade
    return read
 }
 
-func (a *AudioFile) onChannelData(channel *Channel, data []byte) uint16 {
+func (a *audioFile) onChannelData(channel *channel, data []byte) uint16 {
 	if data != nil {
 		a.responseChan <- data
 

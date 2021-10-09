@@ -186,7 +186,7 @@ func (s *Session) handle(cmd uint8, data []byte) {
 	case cmd == PacketAesKey || cmd == PacketAesKeyError ||
 		cmd == PacketStreamChunkRes:
 		// Audio key and data responses
-		s.player.HandleCmd(cmd, data)
+		s.player.handleCmd(cmd, data)
 
 	case cmd == PacketCountryCode:
 		s.country = fmt.Sprintf("%s", data)

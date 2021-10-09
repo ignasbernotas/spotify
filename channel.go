@@ -1,4 +1,3 @@
-//package crypto
 package spotify
 
 import (
@@ -11,13 +10,11 @@ import (
    "sync"
 )
 
-const ChunkSizeK = 32768
+type dataFunc func(channel *channel, data []byte) uint16
+type headerFunc func(channel *channel, id byte, data *bytes.Reader) uint16
+type releaseFunc func(channel *channel)
 
-type headerFunc func(channel *Channel, id byte, data *bytes.Reader) uint16
-type dataFunc func(channel *Channel, data []byte) uint16
-type releaseFunc func(channel *Channel)
-
-type Channel struct {
+type channel struct {
 	Num       uint16
 	dataMode  bool
 	OnHeader  headerFunc
@@ -25,15 +22,15 @@ type Channel struct {
 	onRelease releaseFunc
 }
 
-func NewChannel(num uint16, release releaseFunc) *Channel {
-	return &Channel{
+func newChannel(num uint16, release releaseFunc) *channel {
+	return &channel{
 		Num:       num,
 		dataMode:  false,
 		onRelease: release,
 	}
 }
 
-func (c *Channel) HandlePacket(data []byte) {
+func (c *channel) handlePacket(data []byte) {
 	dataReader := bytes.NewReader(data)
 
 	if !c.dataMode {
@@ -60,14 +57,11 @@ func (c *Channel) HandlePacket(data []byte) {
 		}
 
 		if c.OnData != nil {
-			// fmt.Printf("[channel] Switching channel to dataMode\n")
 			c.dataMode = true
 		} else {
 			c.onRelease(c)
 		}
 	} else {
-		// fmt.Printf("[channel] Reading in dataMode\n")
-
 		if len(data) == 0 {
 			if c.OnData != nil {
 				c.OnData(c, nil)
@@ -83,7 +77,7 @@ func (c *Channel) HandlePacket(data []byte) {
 
 }
 
-func BuildAudioChunkRequest(channel uint16, fileId []byte, start uint32, end uint32) []byte {
+func buildAudioChunkRequest(channel uint16, fileId []byte, start uint32, end uint32) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, channel)
 	binary.Write(buf, binary.BigEndian, uint8(0x0))
@@ -99,7 +93,7 @@ func BuildAudioChunkRequest(channel uint16, fileId []byte, start uint32, end uin
 	return buf.Bytes()
 }
 
-func BuildKeyRequest(seq []byte, trackId []byte, fileId []byte) []byte {
+func buildKeyRequest(seq []byte, trackId []byte, fileId []byte) []byte {
 	buf := new(bytes.Buffer)
 
 	buf.Write(fileId)
@@ -110,24 +104,27 @@ func BuildKeyRequest(seq []byte, trackId []byte, fileId []byte) []byte {
 	return buf.Bytes()
 }
 
-var AUDIO_AESIV = []byte{0x72, 0xe0, 0x67, 0xfb, 0xdd, 0xcb, 0xcf, 0x77, 0xeb, 0xe8, 0xbc, 0x64, 0x3f, 0x63, 0x0d, 0x93}
+var audio_AESIV = []byte{
+   0x72, 0xe0, 0x67, 0xfb, 0xdd, 0xcb, 0xcf, 0x77,
+   0xeb, 0xe8, 0xbc, 0x64, 0x3f, 0x63, 0x0d, 0x93,
+}
 
-type AudioFileDecrypter struct {
+type audioFileDecrypter struct {
 	ivDiff *big.Int
 	ivInt  *big.Int
 }
 
-func NewAudioFileDecrypter() *AudioFileDecrypter {
-	return &AudioFileDecrypter{
+func NewAudioFileDecrypter() *audioFileDecrypter {
+	return &audioFileDecrypter{
 		ivDiff: new(big.Int),
 		ivInt:  new(big.Int),
 	}
 }
 
-func (afd *AudioFileDecrypter) DecryptAudioWithBlock(index int, block cipher.Block, ciphertext []byte, plaintext []byte) []byte {
+func (afd *audioFileDecrypter) DecryptAudioWithBlock(index int, block cipher.Block, ciphertext []byte, plaintext []byte) []byte {
 	length := len(ciphertext)
 	// plaintext := bufferPool.Get().([]byte) // make([]byte, length)
-	byteBaseOffset := index * ChunkSizeK * 4
+	byteBaseOffset := index * chunkSizeK * 4
 
 	// The actual IV is the base IV + index*0x100, where index is the chunk index sized 1024 words (so each 4096 bytes
 	// block has its own IV). As we are retrieving 32768 words (131072 bytes) to speed up network operations, we need
@@ -135,7 +132,7 @@ func (afd *AudioFileDecrypter) DecryptAudioWithBlock(index int, block cipher.Blo
 
 	// We pre-calculate the base IV for the first chunk we are processing, then just proceed to add 0x100 at
 	// every iteration.
-	afd.ivInt.SetBytes(AUDIO_AESIV)
+	afd.ivInt.SetBytes(audio_AESIV)
 	afd.ivDiff.SetInt64(int64((byteBaseOffset / 4096) * 0x100))
 	afd.ivInt.Add(afd.ivInt, afd.ivDiff)
 

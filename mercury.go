@@ -10,7 +10,7 @@ import (
    "sync"
 )
 
-const ChunkByteSizeK = ChunkSizeK * 4
+const ChunkByteSizeK = chunkSizeK * 4
 
 // Number of bytes to skip at the beginning of the file
 const OggSkipBytesK = 167
