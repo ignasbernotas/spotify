@@ -220,7 +220,8 @@ func GetTrackInfo(track *pb.Track) *SpotifyTrack {
 }
 
 func DownloadTrackID(ses *Session, id string) error {
-   tra, err := ses.Mercury().GetTrack(Base62ToHex(id))
+   hex := fmt.Sprintf("%x", Convert62(id))
+   tra, err := ses.Mercury().GetTrack(hex)
    if err != nil {
       return fmt.Errorf("failed to get track metadata %v", err)
    }
