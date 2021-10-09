@@ -31,20 +31,16 @@ func CreatePlayer(conn PacketStream, client *Client) *Player {
 }
 
 func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
-	return p.LoadTrackWithIdAndFormat(file.FileId, file.GetFormat(), trackId)
-}
-
-func (p *Player) LoadTrackWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, trackId []byte) (*AudioFile, error) {
-	// Allocate an AudioFile and a channel
-	audioFile := newAudioFileWithIdAndFormat(fileId, format, p)
-
-	// Start loading the audio key
-	err := audioFile.loadKey(trackId)
-
-	// Then start loading the audio itself
-	audioFile.loadChunks()
-
-	return audioFile, err
+   // Allocate an AudioFile and a channel
+   audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
+   // Start loading the audio key
+   err := audioFile.loadKey(trackId)
+   if err != nil {
+      return nil, err
+   }
+   // Then start loading the audio itself
+   audioFile.loadChunks()
+   return audioFile, nil
 }
 
 func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {

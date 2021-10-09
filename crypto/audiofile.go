@@ -238,43 +238,32 @@ func (a *AudioFile) loadChunk(chunkIndex int) error {
 			break
 		}
 	}
-
-	// fmt.Printf("[AudioFile] Got encrypted chunk %d, len=%d...\n", i, len(wholeData))
-
 	a.putEncryptedChunk(chunkIndex, chunkData[0:chunkSz])
-
 	return nil
-
 }
 
 func (a *AudioFile) loadNextChunk() {
-	a.chunkLock.Lock()
-
-	if a.chunksLoading {
-		// We are already loading a chunk, don't need to start another goroutine
-		a.chunkLock.Unlock()
-		return
-	}
-
-	a.chunksLoading = true
-	chunkIndex := a.chunkLoadOrder[0]
-	a.chunkLoadOrder = a.chunkLoadOrder[1:]
-
-	a.chunkLock.Unlock()
-
-	if !a.hasChunk(chunkIndex) {
-		a.loadChunk(chunkIndex)
-	}
-
-	a.chunkLock.Lock()
-	a.chunksLoading = false
-
-	if len(a.chunkLoadOrder) > 0 {
-		a.chunkLock.Unlock()
-		a.loadNextChunk()
-	} else {
-		a.chunkLock.Unlock()
-	}
+   a.chunkLock.Lock()
+   if a.chunksLoading {
+      // We are already loading a chunk, don't need to start another goroutine
+      a.chunkLock.Unlock()
+      return
+   }
+   a.chunksLoading = true
+   chunkIndex := a.chunkLoadOrder[0]
+   a.chunkLoadOrder = a.chunkLoadOrder[1:]
+   a.chunkLock.Unlock()
+   if !a.hasChunk(chunkIndex) {
+      a.loadChunk(chunkIndex)
+   }
+   a.chunkLock.Lock()
+   a.chunksLoading = false
+   if len(a.chunkLoadOrder) > 0 {
+      a.chunkLock.Unlock()
+      a.loadNextChunk()
+   } else {
+      a.chunkLock.Unlock()
+   }
 }
 
 func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
@@ -287,38 +276,32 @@ func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
 }
 
 func (a *AudioFile) onChannelHeader(channel *Channel, id byte, data *bytes.Reader) uint16 {
-	read := uint16(0)
-
-	if id == 0x3 {
-		var size uint32
-		binary.Read(data, binary.BigEndian, &size)
-		size *= 4
-		// fmt.Printf("[AudioFile] Audio file size: %d bytes\n", size)
-
-		if a.size != size {
-			a.lock.Lock()
-			a.size = size
-			a.lock.Unlock()
-			if a.data == nil {
-				a.data = make([]byte, size)
-			}
-
-			// Recalculate the number of chunks pending for load
-			a.chunkLock.Lock()
-			for i := 0; i < a.totalChunks(); i++ {
-				a.chunkLoadOrder = append(a.chunkLoadOrder, i)
-			}
-			a.chunkLock.Unlock()
-
-			// Re-launch the chunk loading system. It will check itself if another goroutine is already loading chunks.
-			go a.loadNextChunk()
-		}
-
-		// Return 4 bytes read
-		read = 4
-	}
-
-	return read
+   read := uint16(0)
+   if id == 0x3 {
+      var size uint32
+      binary.Read(data, binary.BigEndian, &size)
+      size *= 4
+      if a.size != size {
+         a.lock.Lock()
+         a.size = size
+         a.lock.Unlock()
+         if a.data == nil {
+            a.data = make([]byte, size)
+         }
+         // Recalculate the number of chunks pending for load
+         a.chunkLock.Lock()
+         for i := 0; i < a.totalChunks(); i++ {
+            a.chunkLoadOrder = append(a.chunkLoadOrder, i)
+         }
+         a.chunkLock.Unlock()
+         // Re-launch the chunk loading system. It will check itself if another
+         // goroutine is already loading chunks.
+         go a.loadNextChunk()
+      }
+      // Return 4 bytes read
+      read = 4
+   }
+   return read
 }
 
 func (a *AudioFile) onChannelData(channel *Channel, data []byte) uint16 {
