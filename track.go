@@ -28,6 +28,43 @@ type SpotifyTrack struct {
 	Album            SpotifyAlbum
 }
 
+
+func GetTrackInfo(track *pb.Track) *SpotifyTrack {
+   enc := new(SpotifyTrack)
+   enc.TrackName = track.GetName()
+   enc.TrackNumber = track.GetNumber()
+   // convert ms to seconds
+   enc.TrackDuration = (track.GetDuration() / 1000)
+   enc.TrackDiscNumber = track.GetDiscNumber()
+   album := track.GetAlbum()
+   if album != nil {
+      enc.Album.Name = album.GetName()
+      enc.Album.Label = album.GetLabel()
+      enc.Album.Genre = album.GetGenre()
+      albumDate := album.GetDate()
+      if albumDate != nil {
+         enc.Album.Date = time.Date(
+            int(albumDate.GetYear()),
+            time.Month(int(albumDate.GetMonth())),
+            int(albumDate.GetDay()), 0, 0, 0, 0, time.UTC,
+         )
+      }
+      albumArtists := album.GetArtist()
+      for _, artist := range albumArtists {
+         enc.Album.ArtistNames = append(
+            enc.Album.ArtistNames, artist.GetName(),
+         )
+      }
+   }
+   trackArtists := track.GetArtist()
+   for _, artist := range trackArtists {
+      enc.TrackArtistNames = append(
+         enc.TrackArtistNames, artist.GetName(),
+      )
+   }
+   return enc
+}
+
 func DownloadTrackID(ses *Session, id string) error {
    tra, err := ses.Mercury().GetTrack(Base62ToHex(id))
    if err != nil {
@@ -47,52 +84,15 @@ func DownloadTrackID(ses *Session, id string) error {
    if err != nil {
       return fmt.Errorf("failed to download the track %v", err)
    }
-   track := GetTrackInfo(audioFile, tra)
+   track := GetTrackInfo(tra)
    fmt.Printf("%+v\n", track)
    file, err := os.Create(track.TrackName + ".ogg")
    if err != nil {
       return err
    }
    defer file.Close()
-   if _, err := file.ReadFrom(track.AudioFile); err != nil {
+   if _, err := file.ReadFrom(audioFile); err != nil {
       return err
    }
    return nil
-}
-
-func GetTrackInfo(audioFile io.Reader, track *pb.Track) *SpotifyTrack {
-   serializedTrack := &SpotifyTrack{}
-   serializedTrack.AudioFile = audioFile
-   serializedTrack.TrackName = track.GetName()
-   serializedTrack.TrackNumber = track.GetNumber()
-   // convert ms to seconds
-   serializedTrack.TrackDuration = (track.GetDuration() / 1000)
-   serializedTrack.TrackDiscNumber = track.GetDiscNumber()
-   album := track.GetAlbum()
-   if album != nil {
-      serializedTrack.Album.Name = album.GetName()
-      serializedTrack.Album.Label = album.GetLabel()
-      serializedTrack.Album.Genre = album.GetGenre()
-      albumDate := album.GetDate()
-      if albumDate != nil {
-         serializedTrack.Album.Date = time.Date(
-            int(albumDate.GetYear()),
-            time.Month(int(albumDate.GetMonth())),
-            int(albumDate.GetDay()), 0, 0, 0, 0, time.UTC,
-         )
-      }
-      albumArtists := album.GetArtist()
-      for _, artist := range albumArtists {
-         serializedTrack.Album.ArtistNames = append(
-            serializedTrack.Album.ArtistNames, artist.GetName(),
-         )
-      }
-   }
-   trackArtists := track.GetArtist()
-   for _, artist := range trackArtists {
-      serializedTrack.TrackArtistNames = append(
-         serializedTrack.TrackArtistNames, artist.GetName(),
-      )
-   }
-   return serializedTrack
 }
