@@ -1,4 +1,4 @@
-package crypto
+package spotify
 
 import (
    "bytes"
@@ -241,7 +241,6 @@ func (res *Response) CombinePayload() []byte {
 	return body
 }
 
-const ChunkSizeK = 32768
 const ChunkByteSizeK = ChunkSizeK * 4
 
 // Number of bytes to skip at the beginning of the file

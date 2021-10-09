@@ -8,7 +8,6 @@ import (
    "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
-   "github.com/89z/spotify/crypto"
    "github.com/golang/protobuf/proto"
    "io"
    "log"
@@ -17,18 +16,18 @@ import (
 )
 
 type Client struct {
-	subscriptions map[string][]chan crypto.Response
-	callbacks     map[string]crypto.Callback
-	internal      *crypto.Internal
+	subscriptions map[string][]chan Response
+	callbacks     map[string]Callback
+	inter      *Internal
 	cbMu          sync.Mutex
 }
 
-func CreateMercury(stream crypto.PacketStream) *Client {
+func CreateMercury(stream PacketStream) *Client {
 	client := &Client{
-		callbacks:     make(map[string]crypto.Callback),
-		subscriptions: make(map[string][]chan crypto.Response),
-		internal: &crypto.Internal{
-			Pending: make(map[string]crypto.Pending),
+		callbacks:     make(map[string]Callback),
+		subscriptions: make(map[string][]chan Response),
+		inter: &Internal{
+			Pending: make(map[string]Pending),
 			Stream:  stream,
 		},
 	}
@@ -36,25 +35,25 @@ func CreateMercury(stream crypto.PacketStream) *Client {
 }
 
 func (m *Client) Handle(cmd uint8, reader io.Reader) (err error) {
-	response, err := m.internal.ParseResponse(cmd, reader)
+	resp, err := m.inter.ParseResponse(cmd, reader)
 	if err != nil {
 		return
 	}
-	if response != nil {
+	if resp != nil {
 		if cmd == 0xb5 {
-			chList, ok := m.subscriptions[response.Uri]
+			chList, ok := m.subscriptions[resp.Uri]
 			if ok {
 				for _, ch := range chList {
-					ch <- *response
+					ch <- *resp
 				}
 			}
 		} else {
 			m.cbMu.Lock()
-			cb, ok := m.callbacks[response.SeqKey]
-			delete(m.callbacks, response.SeqKey) // no-op if element does not exist
+			cb, ok := m.callbacks[resp.SeqKey]
+			delete(m.callbacks, resp.SeqKey) // no-op if element does not exist
 			m.cbMu.Unlock()
 			if ok {
-				cb(*response)
+				cb(*resp)
 			}
 		}
 	}
@@ -64,11 +63,11 @@ func (m *Client) Handle(cmd uint8, reader io.Reader) (err error) {
 
 func (m *Client) mercuryGet(url string) []byte {
 	done := make(chan []byte)
-	go m.Request(crypto.Request{
+	go m.Request(Request{
 		Method:  "GET",
 		Uri:     url,
 		Payload: [][]byte{},
-	}, func(res crypto.Response) {
+	}, func(res Response) {
 		done <- res.CombinePayload()
 	})
 
@@ -95,11 +94,11 @@ func (m *Client) GetTrack(id string) (*pb.Track, error) {
    return result, nil
 }
 
-func (m *Client) Request(req crypto.Request, cb crypto.Callback) (err error) {
-   seq, err := m.internal.Request(req)
+func (m *Client) Request(req Request, cb Callback) (err error) {
+   seq, err := m.inter.Request(req)
    if err != nil {
       if cb != nil {
-         cb(crypto.Response{StatusCode: 500})
+         cb(Response{StatusCode: 500})
       }
       return err
    }
@@ -110,23 +109,23 @@ func (m *Client) Request(req crypto.Request, cb crypto.Callback) (err error) {
 }
 
 func (m *Client) NextSeqWithInt() (uint32, []byte) {
-	return m.internal.NextSeq()
+	return m.inter.NextSeq()
 }
 
 type Player struct {
    chanLock    sync.Mutex
-   channels    map[uint16]*crypto.Channel
+   channels    map[uint16]*Channel
    mercury  *Client
    nextChan    uint16
    seqChans    sync.Map
-   stream   crypto.PacketStream
+   stream   PacketStream
 }
 
-func CreatePlayer(conn crypto.PacketStream, client *Client) *Player {
+func CreatePlayer(conn PacketStream, client *Client) *Player {
 	return &Player{
 		stream:   conn,
 		mercury:  client,
-		channels: map[uint16]*crypto.Channel{},
+		channels: map[uint16]*Channel{},
 		seqChans: sync.Map{},
 		chanLock: sync.Mutex{},
 		nextChan: 0,
@@ -148,8 +147,8 @@ func (p *Player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, erro
 func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 	seqInt, seq := p.mercury.NextSeqWithInt()
 	p.seqChans.Store(seqInt, make(chan []byte))
-	req := crypto.BuildKeyRequest(seq, trackId, fileId)
-	err := p.stream.SendPacket(crypto.PacketRequestKey, req)
+	req := BuildKeyRequest(seq, trackId, fileId)
+	err := p.stream.SendPacket(PacketRequestKey, req)
 	if err != nil {
 		log.Println("Error while sending packet", err)
 		return nil, err
@@ -162,9 +161,9 @@ func (p *Player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 	return key, nil
 }
 
-func (p *Player) AllocateChannel() *crypto.Channel {
+func (p *Player) AllocateChannel() *Channel {
 	p.chanLock.Lock()
-	channel := crypto.NewChannel(p.nextChan, p.releaseChannel)
+	channel := NewChannel(p.nextChan, p.releaseChannel)
 	p.nextChan++
 
 	p.channels[channel.Num] = channel
@@ -174,8 +173,7 @@ func (p *Player) AllocateChannel() *crypto.Channel {
 
 func (p *Player) HandleCmd(cmd byte, data []byte) {
 	switch {
-	case cmd == crypto.PacketAesKey:
-		// Audio key response
+	case cmd == PacketAesKey:
 		dataReader := bytes.NewReader(data)
 		var seqNum uint32
 		binary.Read(dataReader, binary.BigEndian, &seqNum)
@@ -186,13 +184,12 @@ func (p *Player) HandleCmd(cmd byte, data []byte) {
 			fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
 		}
 
-	case cmd == crypto.PacketAesKeyError:
+	case cmd == PacketAesKeyError:
 		// Audio key error
 		fmt.Println("[player] Audio key error!")
 		fmt.Printf("%x\n", data)
 
-	case cmd == crypto.PacketStreamChunkRes:
-		// Audio data response
+	case cmd == PacketStreamChunkRes:
 		var channel uint16
 		dataReader := bytes.NewReader(data)
 		binary.Read(dataReader, binary.BigEndian, &channel)
@@ -205,7 +202,7 @@ func (p *Player) HandleCmd(cmd byte, data []byte) {
 	}
 }
 
-func (p *Player) releaseChannel(channel *crypto.Channel) {
+func (p *Player) releaseChannel(channel *Channel) {
 	p.chanLock.Lock()
 	delete(p.channels, channel.Num)
 	p.chanLock.Unlock()
@@ -218,7 +215,7 @@ type AudioFile struct {
 	fileId         []byte
 	player         *Player
 	cipher         cipher.Block
-	decrypter      *crypto.AudioFileDecrypter
+	decrypter      *AudioFileDecrypter
 	responseChan   chan []byte
 	chunkLock      sync.RWMutex
 	chunkLoadOrder []int
@@ -233,8 +230,8 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
 		player:        player,
 		fileId:        fileId,
 		format:        format,
-		decrypter:     crypto.NewAudioFileDecrypter(),
-		size:          crypto.ChunkSizeK, // Set an initial size to fetch the first chunk regardless of the actual size
+		decrypter:     NewAudioFileDecrypter(),
+		size:          ChunkSizeK, // Set an initial size to fetch the first chunk regardless of the actual size
 		responseChan:  make(chan []byte),
 		chunks:        map[int]bool{},
 		chunkLock:     sync.RWMutex{},
@@ -280,13 +277,13 @@ func (a *AudioFile) Read(buf []byte) (int, error) {
 		} else {
 			// cursorEnd is the ending position in the output buffer. It is either the current outBufCursor + the size
 			// of a chunk, in bytes, or the length of the buffer, whichever is smallest.
-			cursorEnd := crypto.Min(outBufCursor+crypto.ChunkByteSizeK, length)
+			cursorEnd := Min(outBufCursor+ChunkByteSizeK, length)
 			writtenLen := cursorEnd - outBufCursor
 
 			// Calculate where our data cursor will end: either at the boundary of the current chunk, or the end
 			// of the song itself
-			dataCursorEnd := crypto.Min(a.cursor+writtenLen, (chunkIdx+1)*crypto.ChunkByteSizeK)
-			dataCursorEnd = crypto.Min(dataCursorEnd, int(a.size))
+			dataCursorEnd := Min(a.cursor+writtenLen, (chunkIdx+1)*ChunkByteSizeK)
+			dataCursorEnd = Min(dataCursorEnd, int(a.size))
 
 			writtenLen = dataCursorEnd - a.cursor
 
@@ -320,7 +317,7 @@ func (a *AudioFile) headerOffset() int {
 	switch {
 	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
 		a.format == pb.AudioFile_OGG_VORBIS_320:
-		return crypto.OggSkipBytesK
+		return OggSkipBytesK
 
 	default:
 		return 0
@@ -328,7 +325,7 @@ func (a *AudioFile) headerOffset() int {
 }
 
 func (a *AudioFile) chunkIndexAtByte(byteIndex int) int {
-	return int(math.Floor(float64(byteIndex) / float64(crypto.ChunkSizeK) / 4.0))
+	return int(math.Floor(float64(byteIndex) / float64(ChunkSizeK) / 4.0))
 }
 
 func (a *AudioFile) hasChunk(index int) bool {
@@ -358,7 +355,7 @@ func (a *AudioFile) totalChunks() int {
 	a.lock.RLock()
 	size := a.size
 	a.lock.RUnlock()
-	return int(math.Ceil(float64(size) / float64(crypto.ChunkSizeK) / 4.0))
+	return int(math.Ceil(float64(size) / float64(ChunkSizeK) / 4.0))
 }
 
 func (a *AudioFile) loadChunks() {
@@ -396,15 +393,15 @@ func (a *AudioFile) requestChunk(chunkIndex int) {
 }
 
 func (a *AudioFile) loadChunk(chunkIndex int) error {
-   chunkData := make([]byte, crypto.ChunkByteSizeK)
+   chunkData := make([]byte, ChunkByteSizeK)
    channel := a.player.AllocateChannel()
    channel.OnHeader = a.onChannelHeader
    channel.OnData = a.onChannelData
-   chunkOffsetStart := uint32(chunkIndex * crypto.ChunkSizeK)
-   chunkOffsetEnd := uint32((chunkIndex + 1) * crypto.ChunkSizeK)
+   chunkOffsetStart := uint32(chunkIndex * ChunkSizeK)
+   chunkOffsetEnd := uint32((chunkIndex + 1) * ChunkSizeK)
    err := a.player.stream.SendPacket(
-      crypto.PacketStreamChunk,
-      crypto.BuildAudioChunkRequest(
+      PacketStreamChunk,
+      BuildAudioChunkRequest(
          channel.Num, a.fileId, chunkOffsetStart, chunkOffsetEnd,
       ),
    )
@@ -451,7 +448,7 @@ func (a *AudioFile) loadNextChunk() {
 }
 
 func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
-	byteIndex := index * crypto.ChunkByteSizeK
+	byteIndex := index * ChunkByteSizeK
 	a.decrypter.DecryptAudioWithBlock(index, a.cipher, data, a.data[byteIndex:byteIndex+len(data)])
 
 	a.chunkLock.Lock()
@@ -459,7 +456,7 @@ func (a *AudioFile) putEncryptedChunk(index int, data []byte) {
 	a.chunkLock.Unlock()
 }
 
-func (a *AudioFile) onChannelHeader(channel *crypto.Channel, id byte, data *bytes.Reader) uint16 {
+func (a *AudioFile) onChannelHeader(channel *Channel, id byte, data *bytes.Reader) uint16 {
    read := uint16(0)
    if id == 0x3 {
       var size uint32
@@ -487,7 +484,7 @@ func (a *AudioFile) onChannelHeader(channel *crypto.Channel, id byte, data *byte
    return read
 }
 
-func (a *AudioFile) onChannelData(channel *crypto.Channel, data []byte) uint16 {
+func (a *AudioFile) onChannelData(channel *Channel, data []byte) uint16 {
 	if data != nil {
 		a.responseChan <- data
 

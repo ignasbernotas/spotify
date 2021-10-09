@@ -4,7 +4,6 @@ import (
    "bytes"
    "fmt"
    "github.com/89z/spotify/pb"
-   "github.com/89z/spotify/crypto"
    "github.com/golang/protobuf/proto"
    "io"
    "log"
@@ -14,11 +13,11 @@ import (
 
 type Session struct {
 	/// Constructor references
-	mercuryConstructor func(conn crypto.PacketStream) *Client
-	shannonConstructor func(keys SharedKeys, conn crypto.PlainConnection) crypto.PacketStream
+	mercuryConstructor func(conn PacketStream) *Client
+	shannonConstructor func(keys SharedKeys, conn PlainConnection) PacketStream
 
 	/// Managers and helpers
-	stream crypto.PacketStream
+	stream PacketStream
 	mercury *Client
 	discovery *Discovery
 	player *Player
@@ -36,7 +35,7 @@ type Session struct {
 	country string
 }
 
-func (s *Session) Stream() crypto.PacketStream {
+func (s *Session) Stream() PacketStream {
 	return s.stream
 }
 
@@ -54,7 +53,7 @@ func (s *Session) Player() *Player {
 
 // NEED THIS
 func (s *Session) startConnection() error {
-	conn := crypto.MakePlainConnection(s.tcpCon, s.tcpCon)
+	conn := MakePlainConnection(s.tcpCon, s.tcpCon)
 
 	helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
 	initClientPacket, err := conn.SendPrefixPacket([]byte{0, 4}, helloMessage)
@@ -197,22 +196,22 @@ func (s *Session) runPollLoop() {
 
 func (s *Session) handle(cmd uint8, data []byte) {
 	switch {
-	case cmd == crypto.PacketPing:
+	case cmd == PacketPing:
 		// Ping
-		err := s.stream.SendPacket(crypto.PacketPong, data)
+		err := s.stream.SendPacket(PacketPong, data)
 		if err != nil {
 			log.Fatal("Error handling PacketPing", err)
 		}
 
-	case cmd == crypto.PacketPongAck:
+	case cmd == PacketPongAck:
 		// Pong reply, ignore
 
-	case cmd == crypto.PacketAesKey || cmd == crypto.PacketAesKeyError ||
-		cmd == crypto.PacketStreamChunkRes:
+	case cmd == PacketAesKey || cmd == PacketAesKeyError ||
+		cmd == PacketStreamChunkRes:
 		// Audio key and data responses
 		s.player.HandleCmd(cmd, data)
 
-	case cmd == crypto.PacketCountryCode:
+	case cmd == PacketCountryCode:
 		// Handle country code
 		s.country = fmt.Sprintf("%s", data)
 
@@ -222,19 +221,19 @@ func (s *Session) handle(cmd uint8, data []byte) {
 			log.Fatal("Handle 0xbx", err)
 		}
 
-	case cmd == crypto.PacketSecretBlock:
+	case cmd == PacketSecretBlock:
 		// Old RSA public key
 
-	case cmd == crypto.PacketLegacyWelcome:
+	case cmd == PacketLegacyWelcome:
 		// Empty welcome packet
 
-	case cmd == crypto.PacketProductInfo:
+	case cmd == PacketProductInfo:
 		// Has some info about A/B testing status, product setup, etc... in an XML fashion.
 
 	case cmd == 0x1f:
 		// Unknown, data is zeroes only
 
-	case cmd == crypto.PacketLicenseVersion:
+	case cmd == PacketLicenseVersion:
 	default:
 		fmt.Printf("Unhandled cmd 0x%x\n", cmd)
 	}

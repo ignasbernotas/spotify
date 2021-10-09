@@ -11,7 +11,7 @@ import (
 )
 
 
-func CreateStream(keys SharedKeys, conn crypto.PlainConnection) crypto.PacketStream {
+func CreateStream(keys SharedKeys, conn PlainConnection) PacketStream {
 	s := &crypto.ShannonStream{
 		Reader: conn.Reader,
 		Writer: conn.Writer,

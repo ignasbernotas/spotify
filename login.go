@@ -3,7 +3,6 @@ package spotify
 import (
    "fmt"
    "github.com/89z/spotify/pb"
-   "github.com/89z/spotify/crypto"
    "github.com/golang/protobuf/proto"
    "log"
 )
@@ -54,7 +53,7 @@ func CoreLoginSaved(username string, authData []byte, deviceName string) (*Sessi
 
 // NEED THIS
 func (s *Session) doLogin(packet []byte, username string) error {
-	err := s.stream.SendPacket(crypto.PacketLogin, packet)
+	err := s.stream.SendPacket(PacketLogin, packet)
 	if err != nil {
 		log.Fatal("bad shannon write", err)
 	}
@@ -85,14 +84,14 @@ func (s *Session) handleLogin() (*pb.APWelcome, error) {
 		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	if cmd == crypto.PacketAuthFailure {
+	if cmd == PacketAuthFailure {
 		failure := &pb.APLoginFailed{}
 		err := proto.Unmarshal(data, failure)
 		if err != nil {
 			return nil, fmt.Errorf("authenticated failed: %v", err)
 		}
 		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
-	} else if cmd == crypto.PacketAPWelcome {
+	} else if cmd == PacketAPWelcome {
 		welcome := &pb.APWelcome{}
 		err := proto.Unmarshal(data, welcome)
 		if err != nil {

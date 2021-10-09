@@ -1,4 +1,5 @@
-package crypto
+//package crypto
+package spotify
 
 import (
    "bytes"
@@ -9,6 +10,8 @@ import (
    "math/big"
    "sync"
 )
+
+const ChunkSizeK = 32768
 
 type headerFunc func(channel *Channel, id byte, data *bytes.Reader) uint16
 type dataFunc func(channel *Channel, data []byte) uint16
