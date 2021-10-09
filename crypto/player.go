@@ -3,12 +3,113 @@ package crypto
 import (
    "bytes"
    "encoding/binary"
+   "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
+   "github.com/golang/protobuf/proto"
    "io"
    "log"
    "sync"
 )
+
+type Client struct {
+	subscriptions map[string][]chan Response
+	callbacks     map[string]Callback
+	internal      *Internal
+	cbMu          sync.Mutex
+}
+
+func CreateMercury(stream PacketStream) *Client {
+	client := &Client{
+		callbacks:     make(map[string]Callback),
+		subscriptions: make(map[string][]chan Response),
+		internal: &Internal{
+			pending: make(map[string]Pending),
+			stream:  stream,
+		},
+	}
+	return client
+}
+
+func (m *Client) Handle(cmd uint8, reader io.Reader) (err error) {
+	response, err := m.internal.parseResponse(cmd, reader)
+	if err != nil {
+		return
+	}
+	if response != nil {
+		if cmd == 0xb5 {
+			chList, ok := m.subscriptions[response.Uri]
+			if ok {
+				for _, ch := range chList {
+					ch <- *response
+				}
+			}
+		} else {
+			m.cbMu.Lock()
+			cb, ok := m.callbacks[response.SeqKey]
+			delete(m.callbacks, response.SeqKey) // no-op if element does not exist
+			m.cbMu.Unlock()
+			if ok {
+				cb(*response)
+			}
+		}
+	}
+	return
+
+}
+
+func (m *Client) mercuryGet(url string) []byte {
+	done := make(chan []byte)
+	go m.Request(Request{
+		Method:  "GET",
+		Uri:     url,
+		Payload: [][]byte{},
+	}, func(res Response) {
+		done <- res.CombinePayload()
+	})
+
+	result := <-done
+	return result
+}
+
+func (m *Client) mercuryGetJson(url string, result interface{}) error {
+   data := m.mercuryGet(url)
+   return json.Unmarshal(data, result)
+}
+
+func (m *Client) mercuryGetProto(url string, result proto.Message) error {
+   data := m.mercuryGet(url)
+   return proto.Unmarshal(data, result)
+}
+
+func (m *Client) GetTrack(id string) (*pb.Track, error) {
+   result := new(pb.Track)
+   err := m.mercuryGetProto("hm://metadata/4/track/" + id, result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func (m *Client) Request(req Request, cb Callback) (err error) {
+   seq, err := m.internal.request(req)
+   if err != nil {
+      // Call the callback with a 500 error-code so that the request doesn't
+      // remain pending in case of error
+      if cb != nil {
+         cb(Response{StatusCode: 500})
+      }
+      return err
+   }
+   m.cbMu.Lock()
+   m.callbacks[string(seq)] = cb
+   m.cbMu.Unlock()
+   return nil
+}
+
+func (m *Client) NextSeqWithInt() (uint32, []byte) {
+	return m.internal.NextSeq()
+}
 
 type Player struct {
    chanLock    sync.Mutex
@@ -113,79 +214,4 @@ func (p *Player) releaseChannel(channel *Channel) {
 	delete(p.channels, channel.num)
 	p.chanLock.Unlock()
 	// fmt.Printf("[player] Released channel %d\n", channel.num)
-}
-
-
-// PlainConnection represents an unencrypted connection to a Spotify AP
-type PlainConnection struct {
-	Writer io.Writer
-	Reader io.Reader
-	mutex  *sync.Mutex
-}
-
-func makePacketPrefix(prefix []byte, data []byte) []byte {
-	size := len(prefix) + 4 + len(data)
-	buf := make([]byte, 0, size)
-	buf = append(buf, prefix...)
-	sizeBuf := make([]byte, 4)
-	binary.BigEndian.PutUint32(sizeBuf, uint32(size))
-	buf = append(buf, sizeBuf...)
-	return append(buf, data...)
-}
-
-func MakePlainConnection(reader io.Reader, writer io.Writer) PlainConnection {
-	return PlainConnection{
-		Reader: reader,
-		Writer: writer,
-		mutex:  &sync.Mutex{},
-	}
-}
-
-func (p *PlainConnection) SendPrefixPacket(prefix []byte, data []byte) (packet []byte, err error) {
-	packet = makePacketPrefix(prefix, data)
-
-	p.mutex.Lock()
-	_, err = p.Writer.Write(packet)
-	p.mutex.Unlock()
-
-	return
-}
-
-func (p *PlainConnection) RecvPacket() (buf []byte, err error) {
-	var size uint32
-	err = binary.Read(p.Reader, binary.BigEndian, &size)
-	if err != nil {
-		return
-	}
-	buf = make([]byte, size)
-	binary.BigEndian.PutUint32(buf, size)
-	_, err = io.ReadFull(p.Reader, buf[4:])
-	if err != nil {
-		return
-	}
-	return buf, nil
-}
-
-const (
-   PacketStreamChunk    = 0x08
-   PacketRequestKey     = 0x0c
-   PacketAesKey         = 0x0d
-   PacketAesKeyError    = 0x0e
-   PacketStreamChunkRes = 0x09
-   PacketLogin       = 0xab
-   PacketAuthFailure = 0xad
-   PacketAPWelcome   = 0xac
-   PacketPing           = 0x04
-   PacketPong    = 0x49
-   PacketPongAck = 0x4a
-   PacketCountryCode = 0x1b
-   PacketSecretBlock    = 0x02
-   PacketLegacyWelcome = 0x69
-   PacketProductInfo   = 0x50
-   PacketLicenseVersion = 0x76
-)
-
-type PacketStream interface {
-	SendPacket(cmd uint8, data []byte) (err error)
-	RecvPacket() (cmd uint8, buf []byte, err error)
 }

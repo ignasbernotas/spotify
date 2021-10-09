@@ -4,8 +4,10 @@ import (
    "bytes"
    "crypto/cipher"
    "encoding/binary"
+   "io"
    "math"
    "math/big"
+   "sync"
 )
 
 type headerFunc func(channel *Channel, id byte, data *bytes.Reader) uint16
@@ -155,4 +157,78 @@ func (afd *AudioFileDecrypter) DecryptAudioWithBlock(index int, block cipher.Blo
 	}
 
 	return plaintext[0:length]
+}
+
+// PlainConnection represents an unencrypted connection to a Spotify AP
+type PlainConnection struct {
+	Writer io.Writer
+	Reader io.Reader
+	mutex  *sync.Mutex
+}
+
+func makePacketPrefix(prefix []byte, data []byte) []byte {
+	size := len(prefix) + 4 + len(data)
+	buf := make([]byte, 0, size)
+	buf = append(buf, prefix...)
+	sizeBuf := make([]byte, 4)
+	binary.BigEndian.PutUint32(sizeBuf, uint32(size))
+	buf = append(buf, sizeBuf...)
+	return append(buf, data...)
+}
+
+func MakePlainConnection(reader io.Reader, writer io.Writer) PlainConnection {
+	return PlainConnection{
+		Reader: reader,
+		Writer: writer,
+		mutex:  &sync.Mutex{},
+	}
+}
+
+func (p *PlainConnection) SendPrefixPacket(prefix []byte, data []byte) (packet []byte, err error) {
+	packet = makePacketPrefix(prefix, data)
+
+	p.mutex.Lock()
+	_, err = p.Writer.Write(packet)
+	p.mutex.Unlock()
+
+	return
+}
+
+func (p *PlainConnection) RecvPacket() (buf []byte, err error) {
+	var size uint32
+	err = binary.Read(p.Reader, binary.BigEndian, &size)
+	if err != nil {
+		return
+	}
+	buf = make([]byte, size)
+	binary.BigEndian.PutUint32(buf, size)
+	_, err = io.ReadFull(p.Reader, buf[4:])
+	if err != nil {
+		return
+	}
+	return buf, nil
+}
+
+const (
+   PacketStreamChunk    = 0x08
+   PacketRequestKey     = 0x0c
+   PacketAesKey         = 0x0d
+   PacketAesKeyError    = 0x0e
+   PacketStreamChunkRes = 0x09
+   PacketLogin       = 0xab
+   PacketAuthFailure = 0xad
+   PacketAPWelcome   = 0xac
+   PacketPing           = 0x04
+   PacketPong    = 0x49
+   PacketPongAck = 0x4a
+   PacketCountryCode = 0x1b
+   PacketSecretBlock    = 0x02
+   PacketLegacyWelcome = 0x69
+   PacketProductInfo   = 0x50
+   PacketLicenseVersion = 0x76
+)
+
+type PacketStream interface {
+	SendPacket(cmd uint8, data []byte) (err error)
+	RecvPacket() (cmd uint8, buf []byte, err error)
 }

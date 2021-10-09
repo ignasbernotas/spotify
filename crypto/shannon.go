@@ -8,19 +8,19 @@ import (
    "sync"
 )
 
-type shannonStream struct {
+type ShannonStream struct {
 	sendNonce  uint32
-	sendCipher shn_ctx
-	recvCipher shn_ctx
+	SendCipher shn_ctx
+	RecvCipher shn_ctx
 
 	recvNonce uint32
-	reader    io.Reader
-	writer    io.Writer
+	Reader    io.Reader
+	Writer    io.Writer
 
-	mutex *sync.Mutex
+	Mutex *sync.Mutex
 }
 
-func setKey(ctx *shn_ctx, key []uint8) {
+func SetKey(ctx *shn_ctx, key []uint8) {
 	shn_key(ctx, key, len(key))
 
 	nonce := make([]byte, 4)
@@ -28,22 +28,9 @@ func setKey(ctx *shn_ctx, key []uint8) {
 	shn_nonce(ctx, nonce, len(nonce))
 }
 
-func CreateStream(keys SharedKeys, conn PlainConnection) PacketStream {
-	s := &shannonStream{
-		reader: conn.Reader,
-		writer: conn.Writer,
-		mutex:  &sync.Mutex{},
-	}
-
-	setKey(&s.recvCipher, keys.recvKey)
-	setKey(&s.sendCipher, keys.sendKey)
-
-	return s
-}
-
-func (s *shannonStream) SendPacket(cmd uint8, data []byte) (err error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+func (s *ShannonStream) SendPacket(cmd uint8, data []byte) (err error) {
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
 
 	_, err = s.Write(cipherPacket(cmd, data))
 	if err != nil {
@@ -61,63 +48,63 @@ func cipherPacket(cmd uint8, data []byte) []byte {
 	return buf.Bytes()
 }
 
-func (s *shannonStream) Encrypt(message string) []byte {
+func (s *ShannonStream) Encrypt(message string) []byte {
 	messageBytes := []byte(message)
 	return s.EncryptBytes(messageBytes)
 }
 
-func (s *shannonStream) EncryptBytes(messageBytes []byte) []byte {
-	shn_encrypt(&s.sendCipher, messageBytes, len(messageBytes))
+func (s *ShannonStream) EncryptBytes(messageBytes []byte) []byte {
+	shn_encrypt(&s.SendCipher, messageBytes, len(messageBytes))
 	return messageBytes
 }
 
-func (s *shannonStream) Decrypt(messageBytes []byte) []byte {
-	shn_decrypt(&s.recvCipher, messageBytes, len(messageBytes))
+func (s *ShannonStream) Decrypt(messageBytes []byte) []byte {
+	shn_decrypt(&s.RecvCipher, messageBytes, len(messageBytes))
 	return messageBytes
 }
 
-func (s *shannonStream) WrapReader(reader io.Reader) {
-	s.reader = reader
+func (s *ShannonStream) WrapReader(reader io.Reader) {
+	s.Reader = reader
 }
 
-func (s *shannonStream) WrapWriter(writer io.Writer) {
-	s.writer = writer
+func (s *ShannonStream) WrapWriter(writer io.Writer) {
+	s.Writer = writer
 }
 
-func (s *shannonStream) Read(p []byte) (n int, err error) {
-   n, err = s.reader.Read(p)
+func (s *ShannonStream) Read(p []byte) (n int, err error) {
+   n, err = s.Reader.Read(p)
    //p = s.Decrypt(p)
    s.Decrypt(p)
    return n, err
 }
 
-func (s *shannonStream) Write(p []byte) (n int, err error) {
+func (s *ShannonStream) Write(p []byte) (n int, err error) {
 	p = s.EncryptBytes(p)
-	return s.writer.Write(p)
+	return s.Writer.Write(p)
 }
 
-func (s *shannonStream) FinishSend() (err error) {
+func (s *ShannonStream) FinishSend() (err error) {
 	count := 4
 	mac := make([]byte, count)
-	shn_finish(&s.sendCipher, mac, count)
+	shn_finish(&s.SendCipher, mac, count)
 
 	s.sendNonce += 1
 	nonce := make([]uint8, 4)
 	binary.BigEndian.PutUint32(nonce, s.sendNonce)
-	shn_nonce(&s.sendCipher, nonce, len(nonce))
+	shn_nonce(&s.SendCipher, nonce, len(nonce))
 
-	_, err = s.writer.Write(mac)
+	_, err = s.Writer.Write(mac)
 	return
 }
 
-func (s *shannonStream) finishRecv() {
+func (s *ShannonStream) finishRecv() {
 	count := 4
 
 	mac := make([]byte, count)
-	io.ReadFull(s.reader, mac)
+	io.ReadFull(s.Reader, mac)
 
 	mac2 := make([]byte, count)
-	shn_finish(&s.recvCipher, mac2, count)
+	shn_finish(&s.RecvCipher, mac2, count)
 
 	if !bytes.Equal(mac, mac2) {
 		log.Println("received mac doesn't match")
@@ -126,10 +113,10 @@ func (s *shannonStream) finishRecv() {
 	s.recvNonce += 1
 	nonce := make([]uint8, 4)
 	binary.BigEndian.PutUint32(nonce, s.recvNonce)
-	shn_nonce(&s.recvCipher, nonce, len(nonce))
+	shn_nonce(&s.RecvCipher, nonce, len(nonce))
 }
 
-func (s *shannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
+func (s *ShannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
 	err = binary.Read(s, binary.BigEndian, &cmd)
 	if err != nil {
 		return
@@ -143,7 +130,7 @@ func (s *shannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
 
 	if size > 0 {
 		buf = make([]byte, size)
-		_, err = io.ReadFull(s.reader, buf)
+		_, err = io.ReadFull(s.Reader, buf)
 		if err != nil {
 			return
 		}
