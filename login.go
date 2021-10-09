@@ -8,11 +8,6 @@ import (
    "time"
 )
 
-func makeLoginPasswordPacket(username string, password string, deviceId string) []byte {
-	return makeLoginBlobPacket(username, []byte(password),
-		pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), deviceId)
-}
-
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) []byte {
 	packet := &pb.ClientResponseEncrypted{
 		LoginCredentials: &pb.LoginCredentials{
@@ -48,10 +43,14 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
 	return packetData
 }
 
+func makeLoginPasswordPacket(username string, password string, deviceId string) []byte {
+	return makeLoginBlobPacket(username, []byte(password),
+		pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), deviceId)
+}
 
 // use these structs because they are much easier to work with than protobuf
 // structs
-type SpotifyAlbum struct {
+type spotifyAlbum struct {
 	Name        string
 	Label       string
 	Genre       []string
@@ -59,18 +58,18 @@ type SpotifyAlbum struct {
 	ArtistNames []string
 }
 
-type SpotifyTrack struct {
+type spotifyTrack struct {
 	AudioFile        io.Reader
 	TrackName        string
 	TrackNumber      int32
 	TrackDuration    int32
 	TrackDiscNumber  int32
 	TrackArtistNames []string
-	Album            SpotifyAlbum
+	Album            spotifyAlbum
 }
 
-func GetTrackInfo(track *pb.Track) *SpotifyTrack {
-   enc := new(SpotifyTrack)
+func getTrackInfo(track *pb.Track) *spotifyTrack {
+   enc := new(spotifyTrack)
    enc.TrackName = track.GetName()
    enc.TrackNumber = track.GetNumber()
    // convert ms to seconds

@@ -227,67 +227,61 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
 }
 
 func (a *audioFile) Read(buf []byte) (int, error) {
-	length := len(buf)
-	outBufCursor := 0
-	totalWritten := 0
-	eof := false
-
-	a.lock.RLock()
-	size := a.size
-	a.lock.RUnlock()
-	// Offset the data start by the header, if needed
-	if a.cursor == 0 {
-		a.cursor += a.headerOffset()
-	} else if uint32(a.cursor) >= size {
-		// We're at the end
-		return 0, io.EOF
-	}
-	chunkIdx := a.chunkIndexAtByte(a.cursor)
-	for totalWritten < length {
-		if chunkIdx >= a.totalChunks() {
-			// We've reached the last chunk, so we can signal EOF
-			eof = true
-			break
-		} else if !a.hasChunk(chunkIdx) {
-			a.requestChunk(chunkIdx)
-			break
-		} else {
-			// cursorEnd is the ending position in the output buffer. It is either the current outBufCursor + the size
-			// of a chunk, in bytes, or the length of the buffer, whichever is smallest.
-			cursorEnd := Min(outBufCursor+ChunkByteSizeK, length)
-			writtenLen := cursorEnd - outBufCursor
-
-			// Calculate where our data cursor will end: either at the boundary of the current chunk, or the end
-			// of the song itself
-			dataCursorEnd := Min(a.cursor+writtenLen, (chunkIdx+1)*ChunkByteSizeK)
-			dataCursorEnd = Min(dataCursorEnd, int(a.size))
-
-			writtenLen = dataCursorEnd - a.cursor
-
-			if writtenLen <= 0 {
-				// No more space in the output buffer, bail out
-				break
-			}
-
-			// Copy into the output buffer, from the current outBufCursor, up to the cursorEnd. The source is the
-			// current cursor inside the audio file, up to the dataCursorEnd.
-			copy(buf[outBufCursor:cursorEnd], a.data[a.cursor:dataCursorEnd])
-			outBufCursor += writtenLen
-			a.cursor += writtenLen
-			totalWritten += writtenLen
-
-			// Update our current chunk, if we need to
-			chunkIdx = a.chunkIndexAtByte(a.cursor)
-		}
-	}
-
-	// The only error we can return here, is if we reach the end of the stream
-	var err error
-	if eof {
-		err = io.EOF
-	}
-
-	return totalWritten, err
+   length := len(buf)
+   outBufCursor := 0
+   totalWritten := 0
+   eof := false
+   a.lock.RLock()
+   size := a.size
+   a.lock.RUnlock()
+   // Offset the data start by the header, if needed
+   if a.cursor == 0 {
+   a.cursor += a.headerOffset()
+   } else if uint32(a.cursor) >= size {
+   // We're at the end
+   return 0, io.EOF
+   }
+   chunkIdx := a.chunkIndexAtByte(a.cursor)
+   for totalWritten < length {
+   if chunkIdx >= a.totalChunks() {
+   // We've reached the last chunk, so we can signal EOF
+   eof = true
+   break
+   } else if !a.hasChunk(chunkIdx) {
+   a.requestChunk(chunkIdx)
+   break
+   } else {
+   // cursorEnd is the ending position in the output buffer. It is either the
+   // current outBufCursor + the size of a chunk, in bytes, or the length of
+   // the buffer, whichever is smallest.
+   cursorEnd := Min(outBufCursor+chunkByteSizeK, length)
+   writtenLen := cursorEnd - outBufCursor
+   // Calculate where our data cursor will end: either at the boundary of the
+   // current chunk, or the end of the song itself
+   dataCursorEnd := Min(a.cursor+writtenLen, (chunkIdx+1)*chunkByteSizeK)
+   dataCursorEnd = Min(dataCursorEnd, int(a.size))
+   writtenLen = dataCursorEnd - a.cursor
+   if writtenLen <= 0 {
+   // No more space in the output buffer, bail out
+   break
+   }
+   // Copy into the output buffer, from the current outBufCursor, up to the
+   // cursorEnd. The source is the current cursor inside the audio file, up to
+   // the dataCursorEnd.
+   copy(buf[outBufCursor:cursorEnd], a.data[a.cursor:dataCursorEnd])
+   outBufCursor += writtenLen
+   a.cursor += writtenLen
+   totalWritten += writtenLen
+   // Update our current chunk, if we need to
+   chunkIdx = a.chunkIndexAtByte(a.cursor)
+   }
+   }
+   // The only error we can return here, is if we reach the end of the stream
+   var err error
+   if eof {
+   err = io.EOF
+   }
+   return totalWritten, err
 }
 
 func (a *audioFile) headerOffset() int {
@@ -389,7 +383,7 @@ func (a *audioFile) loadChunk(chunkIndex int) error {
       return err
    }
    chunkSz := 0
-   chunkData := make([]byte, ChunkByteSizeK)
+   chunkData := make([]byte, chunkByteSizeK)
    for {
       chunk := <-a.responseChan
       chunkLen := len(chunk)
@@ -429,7 +423,7 @@ func (a *audioFile) loadNextChunk() {
 }
 
 func (a *audioFile) putEncryptedChunk(index int, data []byte) {
-   byteIndex := index * ChunkByteSizeK
+   byteIndex := index * chunkByteSizeK
    a.decrypter.decryptAudioWithBlock(
       index, a.cipher, data, a.data[byteIndex:byteIndex+len(data)],
    )

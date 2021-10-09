@@ -307,7 +307,7 @@ func (ses *Session) DownloadTrackID(id string) error {
    if err != nil {
       return fmt.Errorf("failed to download the track %v", err)
    }
-   track := GetTrackInfo(tra)
+   track := getTrackInfo(tra)
    fmt.Printf("%+v\n", track)
    file, err := os.Create(track.TrackName + ".ogg")
    if err != nil {
