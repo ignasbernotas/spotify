@@ -146,7 +146,7 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    seqInt, seq := p.mercury.inter.nextSeq()
    p.seqChans.Store(seqInt, make(chan []byte))
    req := buildKeyRequest(seq, trackId, fileId)
-   err := p.stream.SendPacket(packetRequestKey, req)
+   err := p.stream.sendPacket(packetRequestKey, req)
    if err != nil {
    log.Println("Error while sending packet", err)
       return nil, err
@@ -373,7 +373,7 @@ func (a *audioFile) loadChunk(chunkIndex int) error {
    channel.OnData = a.onChannelData
    chunkOffsetStart := uint32(chunkIndex * chunkSizeK)
    chunkOffsetEnd := uint32((chunkIndex + 1) * chunkSizeK)
-   err := a.player.stream.SendPacket(
+   err := a.player.stream.sendPacket(
       packetStreamChunk,
       buildAudioChunkRequest(
          channel.Num, a.fileId, chunkOffsetStart, chunkOffsetEnd,

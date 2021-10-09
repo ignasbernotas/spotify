@@ -150,7 +150,7 @@ func (s *session) handle(cmd uint8, data []byte) {
    switch {
    case cmd == packetPing:
       // Ping
-      err := s.stream.SendPacket(packetPong, data)
+      err := s.stream.sendPacket(packetPong, data)
       if err != nil {
       log.Fatal("Error handling PacketPing", err)
       }
@@ -193,7 +193,7 @@ func (s *session) planReconnect() {
 
 func (s *session) runPollLoop() {
 	for {
-		cmd, data, err := s.stream.RecvPacket()
+		cmd, data, err := s.stream.recvPacket()
 		if err != nil {
 			log.Println("Error during RecvPacket: ", err)
 
@@ -272,7 +272,7 @@ func (s *session) loginSession(username string, password string, deviceName stri
 }
 
 func (s *session) doLogin(packet []byte, username string) error {
-   err := s.stream.SendPacket(packetLogin, packet)
+   err := s.stream.sendPacket(packetLogin, packet)
    if err != nil {
    log.Fatal("bad shannon write", err)
    }
@@ -293,7 +293,7 @@ func (s *session) doLogin(packet []byte, username string) error {
 }
 
 func (s *session) handleLogin() (*pb.APWelcome, error) {
-	cmd, data, err := s.stream.RecvPacket()
+	cmd, data, err := s.stream.recvPacket()
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %v", err)
 	}

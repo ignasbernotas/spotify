@@ -8,7 +8,7 @@ import (
    "sync"
 )
 
-type ShannonStream struct {
+type shannonStream struct {
 	sendNonce  uint32
 	SendCipher shn_ctx
 	RecvCipher shn_ctx
@@ -20,7 +20,7 @@ type ShannonStream struct {
 	Mutex *sync.Mutex
 }
 
-func SetKey(ctx *shn_ctx, key []uint8) {
+func setKey(ctx *shn_ctx, key []uint8) {
 	shn_key(ctx, key, len(key))
 
 	nonce := make([]byte, 4)
@@ -28,7 +28,7 @@ func SetKey(ctx *shn_ctx, key []uint8) {
 	shn_nonce(ctx, nonce, len(nonce))
 }
 
-func (s *ShannonStream) SendPacket(cmd uint8, data []byte) (err error) {
+func (s *shannonStream) sendPacket(cmd uint8, data []byte) (err error) {
 	s.Mutex.Lock()
 	defer s.Mutex.Unlock()
 
@@ -36,7 +36,7 @@ func (s *ShannonStream) SendPacket(cmd uint8, data []byte) (err error) {
 	if err != nil {
 		return
 	}
-	err = s.FinishSend()
+	err = s.finishSend()
 	return
 }
 
@@ -48,42 +48,31 @@ func cipherPacket(cmd uint8, data []byte) []byte {
 	return buf.Bytes()
 }
 
-func (s *ShannonStream) Encrypt(message string) []byte {
-	messageBytes := []byte(message)
-	return s.EncryptBytes(messageBytes)
+func (s *shannonStream) encryptBytes(messageBytes []byte) []byte {
+   shn_encrypt(&s.SendCipher, messageBytes, len(messageBytes))
+   return messageBytes
 }
 
-func (s *ShannonStream) EncryptBytes(messageBytes []byte) []byte {
-	shn_encrypt(&s.SendCipher, messageBytes, len(messageBytes))
-	return messageBytes
-}
-
-func (s *ShannonStream) Decrypt(messageBytes []byte) []byte {
+func (s *shannonStream) decrypt(messageBytes []byte) []byte {
 	shn_decrypt(&s.RecvCipher, messageBytes, len(messageBytes))
 	return messageBytes
 }
 
-func (s *ShannonStream) WrapReader(reader io.Reader) {
-	s.Reader = reader
+func (s *shannonStream) Read(p []byte) (int, error) {
+   n, err := s.Reader.Read(p)
+   if err != nil {
+      return 0, err
+   }
+   s.decrypt(p)
+   return n, nil
 }
 
-func (s *ShannonStream) WrapWriter(writer io.Writer) {
-	s.Writer = writer
+func (s *shannonStream) Write(p []byte) (int, error) {
+   p = s.encryptBytes(p)
+   return s.Writer.Write(p)
 }
 
-func (s *ShannonStream) Read(p []byte) (n int, err error) {
-   n, err = s.Reader.Read(p)
-   //p = s.Decrypt(p)
-   s.Decrypt(p)
-   return n, err
-}
-
-func (s *ShannonStream) Write(p []byte) (n int, err error) {
-	p = s.EncryptBytes(p)
-	return s.Writer.Write(p)
-}
-
-func (s *ShannonStream) FinishSend() (err error) {
+func (s *shannonStream) finishSend() (err error) {
 	count := 4
 	mac := make([]byte, count)
 	shn_finish(&s.SendCipher, mac, count)
@@ -97,7 +86,7 @@ func (s *ShannonStream) FinishSend() (err error) {
 	return
 }
 
-func (s *ShannonStream) finishRecv() {
+func (s *shannonStream) finishRecv() {
 	count := 4
 
 	mac := make([]byte, count)
@@ -116,7 +105,7 @@ func (s *ShannonStream) finishRecv() {
 	shn_nonce(&s.RecvCipher, nonce, len(nonce))
 }
 
-func (s *ShannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
+func (s *shannonStream) recvPacket() (cmd uint8, buf []byte, err error) {
 	err = binary.Read(s, binary.BigEndian, &cmd)
 	if err != nil {
 		return
@@ -134,7 +123,7 @@ func (s *ShannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
 		if err != nil {
 			return
 		}
-		buf = s.Decrypt(buf)
+		buf = s.decrypt(buf)
 
 	}
 	s.finishRecv()
@@ -143,18 +132,17 @@ func (s *ShannonStream) RecvPacket() (cmd uint8, buf []byte, err error) {
 }
 
 type shn_ctx struct {
-	R     [N]uint32
-	CRC   [N]uint32
-	initR [N]uint32
+	R     [num]uint32
+	CRC   [num]uint32
+	initR [num]uint32
 	konst uint32
 	sbuf  uint32
 	mbuf  uint32
 	nbuf  int
 }
 
-const N int = 16
+const num int = 16
 
-const FOLD int = 16
 
 const initkonst uint32 = 0x6996c53a
 
@@ -208,10 +196,10 @@ func cycle(c *shn_ctx) {
 	t = sbox1(t) ^ rotl(c.R[0], 1)
 
 	/* shift register */
-	for i = 1; i < N; i++ {
+	for i = 1; i < num; i++ {
 		c.R[i-1] = c.R[i]
 	}
-	c.R[N-1] = t
+	c.R[num-1] = t
 	t = sbox2(c.R[2] ^ c.R[15])
 	c.R[0] ^= t
 	c.sbuf = t ^ c.R[8] ^ c.R[12]
@@ -224,10 +212,10 @@ func crcfunc(c *shn_ctx, i uint32) {
 	/* Accumulate CRC of input */
 	t = c.CRC[0] ^ c.CRC[2] ^ c.CRC[15] ^ i
 
-	for j = 1; j < N; j++ {
+	for j = 1; j < num; j++ {
 		c.CRC[j-1] = c.CRC[j]
 	}
-	c.CRC[N-1] = t
+	c.CRC[num-1] = t
 }
 
 /* Normal MAC word processing: do both stream register and CRC.
@@ -246,7 +234,7 @@ func shn_initstate(c *shn_ctx) {
 	c.R[0] = 1
 
 	c.R[1] = 1
-	for i = 2; i < N; i++ {
+	for i = 2; i < num; i++ {
 		c.R[i] = c.R[i-1] + c.R[i-2]
 	}
 	c.konst = initkonst
@@ -257,7 +245,7 @@ func shn_initstate(c *shn_ctx) {
 func shn_savestate(c *shn_ctx) {
 	var i int
 
-	for i = 0; i < N; i++ {
+	for i = 0; i < num; i++ {
 		c.initR[i] = c.R[i]
 	}
 }
@@ -267,7 +255,7 @@ func shn_savestate(c *shn_ctx) {
 func shn_reloadstate(c *shn_ctx) {
 	var i int
 
-	for i = 0; i < N; i++ {
+	for i = 0; i < num; i++ {
 		c.R[i] = c.initR[i]
 	}
 }
@@ -288,11 +276,9 @@ func addkey(c *shn_ctx, k uint32) {
 
 /* extra nonlinear diffusion of register for key and MAC */
 func shn_diffuse(c *shn_ctx) {
-	var i int
-
-	for i = 0; i < FOLD; i++ {
-		cycle(c)
-	}
+   for i := 0; i < 16; i++ {
+      cycle(c)
+   }
 }
 
 /* Common actions for loading key material
@@ -326,13 +312,12 @@ func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 		cycle(c)
 	}
 
-	/* also fold in the length of the key */
 	addkey(c, uint32(keylen))
 
 	cycle(c)
 
 	/* save a copy of the register */
-	for i = 0; i < N; i++ {
+	for i = 0; i < num; i++ {
 		c.CRC[i] = c.R[i]
 	}
 
@@ -340,7 +325,7 @@ func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 	shn_diffuse(c)
 
 	/* now xor the copy back -- makes key loading irreversible */
-	for i = 0; i < N; i++ {
+	for i = 0; i < num; i++ {
 		c.R[i] ^= c.CRC[i]
 	}
 }
@@ -496,7 +481,7 @@ func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
 	c.nbuf = 0
 
 	/* now add the CRC to the stream register and diffuse it */
-	for i = 0; i < N; i++ {
+	for i = 0; i < num; i++ {
 		c.R[i] ^= c.CRC[i]
 	}
 	shn_diffuse(c)

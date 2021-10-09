@@ -156,7 +156,7 @@ func (m *internal) request(req request) (seqKey string, err error) {
 		cmd = 0xb2
 	}
 
-	err = m.Stream.SendPacket(cmd, data)
+	err = m.Stream.sendPacket(cmd, data)
 	if err != nil {
 		return "", err
 	}
