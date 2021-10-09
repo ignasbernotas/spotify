@@ -173,6 +173,7 @@ func (c *channel) handlePacket(data []byte) {
 	}
 
 }
+
 type dataFunc func(channel *channel, data []byte) uint16
 
 type headerFunc func(channel *channel, id byte, data *bytes.Reader) uint16

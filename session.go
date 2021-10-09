@@ -14,25 +14,24 @@ import (
 )
 
 type session struct {
-	/// Constructor references
-	mercuryConstructor func(conn packetStream) *client
-	shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
-	/// Managers and helpers
-	stream packetStream
-	mercury *client
-	discovery *discovery
-	player *player
-	tcpCon io.ReadWriter
-	// keys are the encryption keys used to communicate with the server
-	keys privateKeys
-
-	/// State and variables
-	deviceId string
-	deviceName string
-	// username is the currently authenticated canonical username
-	username string
-	reusableAuthBlob []byte
-	country string
+   /// Constructor references
+   mercuryConstructor func(conn packetStream) *client
+   shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
+   /// Managers and helpers
+   stream packetStream
+   mercury *client
+   player *player
+   tcpCon io.ReadWriter
+   // keys are the encryption keys used to communicate with the server
+   keys privateKeys
+   /// State and variables
+   deviceId string
+   deviceName string
+   // username is the currently authenticated canonical username
+   username string
+   reusableAuthBlob []byte
+   country string
+   discovery *blobInfo
 }
 
 func Login(username string, password string, deviceName string) (*session, error) {
@@ -284,7 +283,7 @@ func (s *session) doLogin(packet []byte, username string) error {
    // Store the few interesting values
    s.username = welcome.GetCanonicalUsername()
    if s.username == "" {
-   s.username = s.discovery.loginBlob.Username
+      s.username = s.discovery.Username
    }
    s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
    // Poll for acknowledge before loading - needed for gopherjs

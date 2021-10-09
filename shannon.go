@@ -141,14 +141,13 @@ type shn_ctx struct {
 	nbuf  int
 }
 
-const num int = 16
+const (
+   initkonst uint32 = 0x6996c53a
+   keyP int = 13
+   num int = 16
+)
 
-
-const initkonst uint32 = 0x6996c53a
-
-const KEYP int = 13
-
-/* some useful macros -- machine independent little-endian */
+// some useful macros -- machine independent little-endian
 
 func toByte(x uint32, i int) uint8 {
 	return uint8((x >> uint(8*i)) & 0xFF)
@@ -169,9 +168,8 @@ func word2byte(w uint32, b []byte) {
 	b[0] = byte(toByte(w, 0))
 }
 
-/* Nonlinear transform (sbox) of a word.
- * There are two slightly different combinations.
- */
+// Nonlinear transform (sbox) of a word. There are two slightly different
+// combinations.
 func sbox1(w uint32) uint32 {
 	w ^= rotl(w, 5) | rotl(w, 7)
 	w ^= rotl(w, 19) | rotl(w, 22)
@@ -184,8 +182,7 @@ func sbox2(w uint32) uint32 {
 	return w
 }
 
-/* cycle the contents of the register and calculate output word in c->sbuf.
- */
+// cycle the contents of the register and calculate output word in c->sbuf
 func cycle(c *shn_ctx) {
 	var t uint32
 	var i int
@@ -218,15 +215,13 @@ func crcfunc(c *shn_ctx, i uint32) {
 	c.CRC[num-1] = t
 }
 
-/* Normal MAC word processing: do both stream register and CRC.
- */
+// Normal MAC word processing: do both stream register and CRC.
 func macfunc(c *shn_ctx, i uint32) {
 	crcfunc(c, i)
-	c.R[KEYP] ^= i
+	c.R[keyP] ^= i
 }
 
-/* initialise to known state
- */
+// initialise to known state
 func shn_initstate(c *shn_ctx) {
 	var i int
 
@@ -240,8 +235,7 @@ func shn_initstate(c *shn_ctx) {
 	c.konst = initkonst
 }
 
-/* Save the current register state
- */
+// Save the current register state
 func shn_savestate(c *shn_ctx) {
 	var i int
 
@@ -250,8 +244,7 @@ func shn_savestate(c *shn_ctx) {
 	}
 }
 
-/* initialise to previously saved register state
- */
+// initialise to previously saved register state
 func shn_reloadstate(c *shn_ctx) {
 	var i int
 
@@ -260,31 +253,25 @@ func shn_reloadstate(c *shn_ctx) {
 	}
 }
 
-/* Initialise "konst"
- */
+// Initialise "konst"
 func shn_genkonst(c *shn_ctx) {
 	c.konst = c.R[0]
 }
 
-/* Load key material into the register
- */
-// #define addkey(k) \
-// 	c->R[KEYP] ^= (k);
+// Load key material into the register
 func addkey(c *shn_ctx, k uint32) {
-	c.R[KEYP] ^= k
+	c.R[keyP] ^= k
 }
 
-/* extra nonlinear diffusion of register for key and MAC */
+// extra nonlinear diffusion of register for key and MAC
 func shn_diffuse(c *shn_ctx) {
    for i := 0; i < 16; i++ {
       cycle(c)
    }
 }
 
-/* Common actions for loading key material
- * Allow non-word-multiple key and nonce material.
- * Note also initializes the CRC register as a side effect.
- */
+// Common actions for loading key material. Allow non-word-multiple key and
+// nonce material. Note also initializes the CRC register as a side effect.
 func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 	var i int
 	var j int
@@ -330,8 +317,7 @@ func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 	}
 }
 
-/* Published "key" interface
- */
+// Published "key" interface
 func shn_key(c *shn_ctx, key []byte, keylen int) {
 	shn_initstate(c)
 	shn_loadkey(c, key, keylen)
@@ -340,8 +326,7 @@ func shn_key(c *shn_ctx, key []byte, keylen int) {
 	c.nbuf = 0
 }
 
-/* Published "IV" interface
- */
+// Published "IV" interface
 func shn_nonce(c *shn_ctx, nonce []byte, noncelen int) {
 	shn_reloadstate(c)
 	c.konst = initkonst
@@ -350,9 +335,7 @@ func shn_nonce(c *shn_ctx, nonce []byte, noncelen int) {
 	c.nbuf = 0
 }
 
-/* Combined MAC and encryption.
- * Note that plaintext is accumulated for MAC.
- */
+// Combined MAC and encryption. Note that plaintext is accumulated for MAC.
 func shn_encrypt(c *shn_ctx, buf []byte, nbytes int) {
 	var endbuf []byte
 	var t uint32 = 0
@@ -404,9 +387,7 @@ func shn_encrypt(c *shn_ctx, buf []byte, nbytes int) {
 	}
 }
 
-/* Combined MAC and decryption.
- * Note that plaintext is accumulated for MAC.
- */
+// Combined MAC and decryption. Note that plaintext is accumulated for MAC.
 func shn_decrypt(c *shn_ctx, buf []byte, nbytes int) {
 	var endbuf []byte
 	var t uint32 = 0
@@ -457,10 +438,9 @@ func shn_decrypt(c *shn_ctx, buf []byte, nbytes int) {
 	}
 }
 
-/* Having accumulated a MAC, finish processing and return it.
- * Note that any unprocessed bytes are treated as if
- * they were encrypted zero bytes, so plaintext (zero) is accumulated.
- */
+// Having accumulated a MAC, finish processing and return it. Note that any
+// unprocessed bytes are treated as if they were encrypted zero bytes, so
+// plaintext (zero) is accumulated.
 func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
 	var i int
 

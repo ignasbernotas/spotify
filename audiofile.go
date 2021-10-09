@@ -5,7 +5,6 @@ import (
    "crypto/aes"
    "crypto/cipher"
    "encoding/binary"
-   "encoding/json"
    "fmt"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
@@ -75,11 +74,6 @@ func (m *client) mercuryGet(url string) []byte {
    )
    result := <-done
    return result
-}
-
-func (m *client) mercuryGetJson(url string, result interface{}) error {
-   data := m.mercuryGet(url)
-   return json.Unmarshal(data, result)
 }
 
 func (m *client) mercuryGetProto(url string, result proto.Message) error {
@@ -296,7 +290,7 @@ func (a *audioFile) headerOffset() int {
 }
 
 func (a *audioFile) chunkIndexAtByte(byteIndex int) int {
-	return int(math.Floor(float64(byteIndex) / float64(chunkSizeK) / 4.0))
+   return int(math.Floor(float64(byteIndex) / float64(chunkSizeK) / 4.0))
 }
 
 func (a *audioFile) hasChunk(index int) bool {

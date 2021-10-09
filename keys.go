@@ -136,11 +136,6 @@ type blobInfo struct {
    DecodedBlob string
 }
 
-// Discovery stores the information about Spotify Connect Discovery Request
-type discovery struct {
-   loginBlob blobInfo
-}
-
 type privateKeys struct {
    clientNonce []byte
    generator   *big.Int
