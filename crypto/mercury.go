@@ -239,3 +239,16 @@ func (res *Response) CombinePayload() []byte {
 	}
 	return body
 }
+
+const kChunkSize = 32768 // In number of words (so actual byte size is kChunkSize*4, aka. kChunkByteSize)
+const kChunkByteSize = kChunkSize * 4
+const kOggSkipBytes = 167 // Number of bytes to skip at the beginning of the file
+
+// min helper function for integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
