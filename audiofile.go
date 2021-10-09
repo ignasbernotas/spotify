@@ -146,7 +146,7 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    seqInt, seq := p.mercury.inter.NextSeq()
    p.seqChans.Store(seqInt, make(chan []byte))
    req := buildKeyRequest(seq, trackId, fileId)
-   err := p.stream.SendPacket(PacketRequestKey, req)
+   err := p.stream.SendPacket(packetRequestKey, req)
    if err != nil {
    log.Println("Error while sending packet", err)
       return nil, err
@@ -159,7 +159,7 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 
 func (p *player) handleCmd(cmd byte, data []byte) {
 	switch {
-	case cmd == PacketAesKey:
+	case cmd == packetAesKey:
 		dataReader := bytes.NewReader(data)
 		var seqNum uint32
 		binary.Read(dataReader, binary.BigEndian, &seqNum)
@@ -170,12 +170,12 @@ func (p *player) handleCmd(cmd byte, data []byte) {
 			fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
 		}
 
-	case cmd == PacketAesKeyError:
+	case cmd == packetAesKeyError:
 		// Audio key error
 		fmt.Println("[player] Audio key error!")
 		fmt.Printf("%x\n", data)
 
-	case cmd == PacketStreamChunkRes:
+	case cmd == packetStreamChunkRes:
 		var channel uint16
 		dataReader := bytes.NewReader(data)
 		binary.Read(dataReader, binary.BigEndian, &channel)
@@ -380,7 +380,7 @@ func (a *audioFile) loadChunk(chunkIndex int) error {
    chunkOffsetStart := uint32(chunkIndex * chunkSizeK)
    chunkOffsetEnd := uint32((chunkIndex + 1) * chunkSizeK)
    err := a.player.stream.SendPacket(
-      PacketStreamChunk,
+      packetStreamChunk,
       buildAudioChunkRequest(
          channel.Num, a.fileId, chunkOffsetStart, chunkOffsetEnd,
       ),

@@ -94,7 +94,7 @@ func (s *Session) loginSession(username string, password string, deviceName stri
 }
 
 func (s *Session) doLogin(packet []byte, username string) error {
-	err := s.stream.SendPacket(PacketLogin, packet)
+	err := s.stream.SendPacket(packetLogin, packet)
 	if err != nil {
 		log.Fatal("bad shannon write", err)
 	}
@@ -124,14 +124,14 @@ func (s *Session) handleLogin() (*pb.APWelcome, error) {
 		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	if cmd == PacketAuthFailure {
+	if cmd == packetAuthFailure {
 		failure := &pb.APLoginFailed{}
 		err := proto.Unmarshal(data, failure)
 		if err != nil {
 			return nil, fmt.Errorf("authenticated failed: %v", err)
 		}
 		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
-	} else if cmd == PacketAPWelcome {
+	} else if cmd == packetAPWelcome {
 		welcome := &pb.APWelcome{}
 		err := proto.Unmarshal(data, welcome)
 		if err != nil {

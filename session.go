@@ -172,47 +172,38 @@ func (s *Session) runPollLoop() {
 }
 
 func (s *Session) handle(cmd uint8, data []byte) {
-	switch {
-	case cmd == PacketPing:
-		// Ping
-		err := s.stream.SendPacket(PacketPong, data)
-		if err != nil {
-			log.Fatal("Error handling PacketPing", err)
-		}
-
-	case cmd == PacketPongAck:
-		// Pong reply, ignore
-
-	case cmd == PacketAesKey || cmd == PacketAesKeyError ||
-		cmd == PacketStreamChunkRes:
-		// Audio key and data responses
-		s.player.handleCmd(cmd, data)
-
-	case cmd == PacketCountryCode:
-		s.country = fmt.Sprintf("%s", data)
-
-	case 0xb2 <= cmd && cmd <= 0xb6:
-		err := s.mercury.handle(cmd, bytes.NewReader(data))
-		if err != nil {
-			log.Fatal("Handle 0xbx", err)
-		}
-
-	case cmd == PacketSecretBlock:
-		// Old RSA public key
-
-	case cmd == PacketLegacyWelcome:
-		// Empty welcome packet
-
-	case cmd == PacketProductInfo:
-		// Has some info about A/B testing status, product setup, etc... in an XML fashion.
-
-	case cmd == 0x1f:
-		// Unknown, data is zeroes only
-
-	case cmd == PacketLicenseVersion:
-	default:
-		fmt.Printf("Unhandled cmd 0x%x\n", cmd)
-	}
+   switch {
+   case cmd == packetPing:
+      // Ping
+      err := s.stream.SendPacket(packetPong, data)
+      if err != nil {
+      log.Fatal("Error handling PacketPing", err)
+      }
+   case cmd == packetPongAck:
+      // Pong reply, ignore
+   case cmd == packetAesKey, cmd == packetAesKeyError, cmd == packetStreamChunkRes:
+      // Audio key and data responses
+      s.player.handleCmd(cmd, data)
+   case cmd == packetCountryCode:
+      s.country = fmt.Sprintf("%s", data)
+   case 0xb2 <= cmd && cmd <= 0xb6:
+      err := s.mercury.handle(cmd, bytes.NewReader(data))
+      if err != nil {
+      log.Fatal("Handle 0xbx", err)
+      }
+   case cmd == packetSecretBlock:
+      // Old RSA public key
+   case cmd == packetLegacyWelcome:
+      // Empty welcome packet
+   case cmd == packetProductInfo:
+      // Has some info about A/B testing status, product setup, etc... in an
+      // XML fashion.
+   case cmd == 0x1f:
+      // Unknown, data is zeroes only
+   case cmd == packetLicenseVersion:
+   default:
+      fmt.Printf("Unhandled cmd 0x%x\n", cmd)
+   }
 }
 
 func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
