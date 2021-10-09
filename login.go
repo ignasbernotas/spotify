@@ -11,12 +11,12 @@ import (
    "time"
 )
 
-func setupSession() (*Session, error) {
+func Login(username string, password string, deviceName string) (*Session, error) {
    private := new(big.Int)
    private.SetBytes(RandomVec(95))
-   nonce := RandomVec(0x10)
    DH_GENERATOR := big.NewInt(0x2)
    DH_PRIME := new(big.Int)
+   // datatracker.ietf.org/doc/html/rfc2412#appendix-E.1
    DH_PRIME.SetBytes([]byte{
       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9, 0x0f, 0xda, 0xa2,
       0x21, 0x68, 0xc2, 0x34, 0xc4, 0xc6, 0x62, 0x8b, 0x80, 0xdc, 0x1c, 0xd1,
@@ -27,9 +27,9 @@ func setupSession() (*Session, error) {
       0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6, 0xf4, 0x4c, 0x42, 0xe9,
       0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    })
-   session := &Session{
+   ses := &Session{
       keys: PrivateKeys{
-         clientNonce: nonce,
+         clientNonce: RandomVec(0x10),
          generator:   DH_GENERATOR,
          prime:       DH_PRIME,
          privateKey: private,
@@ -38,19 +38,47 @@ func setupSession() (*Session, error) {
       mercuryConstructor: CreateMercury,
       shannonConstructor: CreateStream,
    }
-   err := session.doConnect()
+   err := ses.doConnect()
    if err != nil {
       return nil, err
    }
-   return session, nil
+   if err := ses.loginSession(username, password, deviceName); err != nil {
+      return nil, err
+   }
+   return ses, nil
 }
 
-func CoreLogin(username string, password string, deviceName string) (*Session, error) {
-   s, err := setupSession()
+func DownloadTrackID(ses *Session, id string) error {
+   hex := fmt.Sprintf("%x", Convert62(id))
+   tra, err := ses.Mercury().GetTrack(hex)
    if err != nil {
-      return s, err
+      return fmt.Errorf("failed to get track metadata %v", err)
    }
-   return s, s.loginSession(username, password, deviceName)
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range tra.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := GetTrackInfo(tra)
+   fmt.Printf("%+v\n", track)
+   file, err := os.Create(track.TrackName + ".ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(audioFile); err != nil {
+      return err
+   }
+   return nil
 }
 
 func (s *Session) loginSession(username string, password string, deviceName string) error {
@@ -85,7 +113,6 @@ func (s *Session) doLogin(packet []byte, username string) error {
 	s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
 
 	// Poll for acknowledge before loading - needed for gopherjs
-	// s.poll()
 	go s.runPollLoop()
 
 	return nil
@@ -110,8 +137,6 @@ func (s *Session) handleLogin() (*pb.APWelcome, error) {
 		if err != nil {
 			return nil, fmt.Errorf("authentication failed: %v", err)
 		}
-		// fmt.Println("Authentication succeeded: Welcome,", welcome.GetCanonicalUsername())
-		// fmt.Println("Blob type:", welcome.GetReusableAuthCredentialsType())
 		return welcome, nil
 	} else {
 		return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
@@ -125,8 +150,6 @@ func makeLoginPasswordPacket(username string, password string, deviceId string) 
 
 func makeLoginBlobPacket(username string, authData []byte,
 	authType *pb.AuthenticationType, deviceId string) []byte {
-
-	// TODO: Fix PremiumAccountRequired
 	packet := &pb.ClientResponseEncrypted{
 		LoginCredentials: &pb.LoginCredentials{
 			Username: proto.String(username),
@@ -182,7 +205,6 @@ type SpotifyTrack struct {
 	Album            SpotifyAlbum
 }
 
-
 func GetTrackInfo(track *pb.Track) *SpotifyTrack {
    enc := new(SpotifyTrack)
    enc.TrackName = track.GetName()
@@ -219,35 +241,3 @@ func GetTrackInfo(track *pb.Track) *SpotifyTrack {
    return enc
 }
 
-func DownloadTrackID(ses *Session, id string) error {
-   hex := fmt.Sprintf("%x", Convert62(id))
-   tra, err := ses.Mercury().GetTrack(hex)
-   if err != nil {
-      return fmt.Errorf("failed to get track metadata %v", err)
-   }
-   var selectedFile *pb.AudioFile = nil
-   for _, file := range tra.GetFile() {
-      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-         selectedFile = file
-      }
-   }
-   if selectedFile == nil {
-      msg := "could not find any files of the song in the specified formats"
-      return fmt.Errorf(msg)
-   }
-   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
-   if err != nil {
-      return fmt.Errorf("failed to download the track %v", err)
-   }
-   track := GetTrackInfo(tra)
-   fmt.Printf("%+v\n", track)
-   file, err := os.Create(track.TrackName + ".ogg")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   if _, err := file.ReadFrom(audioFile); err != nil {
-      return err
-   }
-   return nil
-}
