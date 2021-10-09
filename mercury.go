@@ -13,9 +13,9 @@ import (
 const chunkByteSizeK = chunkSizeK * 4
 
 // Number of bytes to skip at the beginning of the file
-const OggSkipBytesK = 167
+const oggSkipBytesK = 167
 
-func Min(a, b int) int {
+func min(a, b int) int {
 	if a < b {
 		return a
 	}
@@ -57,7 +57,7 @@ func parsePart(reader io.Reader) ([]byte, error) {
 	return buf, err
 }
 
-func encodeRequest(seq []byte, req Request) ([]byte, error) {
+func encodeRequest(seq []byte, req request) ([]byte, error) {
 	buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
 	if err != nil {
 		return nil, err
@@ -98,6 +98,7 @@ func encodeRequest(seq []byte, req Request) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
 func encodeMercuryHead(seq []byte, partsLength uint16, flags uint8) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, uint16(len(seq)))
@@ -120,16 +121,16 @@ func encodeMercuryHead(seq []byte, partsLength uint16, flags uint8) (*bytes.Buff
 	return buf, nil
 }
 
-type Callback func(Response)
+type callback func(response)
 
-type Internal struct {
+type internal struct {
 	seqLock sync.Mutex
 	nextSeq uint32
-	Pending map[string]Pending
+	Pending map[string]pending
 	Stream  packetStream
 }
 
-func (m *Internal) NextSeq() (uint32, []byte) {
+func (m *internal) NextSeq() (uint32, []byte) {
 	m.seqLock.Lock()
 
 	seq := make([]byte, 4)
@@ -141,7 +142,7 @@ func (m *Internal) NextSeq() (uint32, []byte) {
 	return seqInt, seq
 }
 
-func (m *Internal) Request(req Request) (seqKey string, err error) {
+func (m *internal) Request(req request) (seqKey string, err error) {
 	_, seq := m.NextSeq()
 	data, err := encodeRequest(seq, req)
 	if err != nil {
@@ -166,54 +167,51 @@ func (m *Internal) Request(req Request) (seqKey string, err error) {
 	return string(seq), nil
 }
 
-func (m *Internal) ParseResponse(cmd uint8, reader io.Reader) (response *Response, err error) {
-	seq, flags, count, err := handleHead(reader)
-	if err != nil {
-		fmt.Println("error handling response", err)
-		return
-	}
-	seqKey := string(seq)
-	pending, ok := m.Pending[seqKey]
-	if !ok && cmd == 0xb5 {
-		pending = Pending{}
-	}
-	for i := uint16(0); i < count; i++ {
-		part, err := parsePart(reader)
-		if err != nil {
-			fmt.Println("read part")
-			return nil, err
-		}
-
-		if pending.partial != nil {
-			part = append(pending.partial, part...)
-			pending.partial = nil
-		}
-
-		if i == count-1 && (flags == 2) {
-			pending.partial = part
-		} else {
-			pending.parts = append(pending.parts, part)
-		}
-	}
-
-	if flags == 1 {
-		delete(m.Pending, seqKey)
-		return m.completeRequest(cmd, pending, seqKey)
-	} else {
-		m.Pending[seqKey] = pending
-	}
-	return nil, nil
+func (m *internal) ParseResponse(cmd uint8, reader io.Reader) (response *response, err error) {
+   seq, flags, count, err := handleHead(reader)
+   if err != nil {
+   fmt.Println("error handling response", err)
+   return
+   }
+   seqKey := string(seq)
+   pend, ok := m.Pending[seqKey]
+   if !ok && cmd == 0xb5 {
+   pend = pending{}
+   }
+   for i := uint16(0); i < count; i++ {
+   part, err := parsePart(reader)
+   if err != nil {
+   fmt.Println("read part")
+   return nil, err
+   }
+   if pend.partial != nil {
+   part = append(pend.partial, part...)
+   pend.partial = nil
+   }
+   if i == count-1 && (flags == 2) {
+   pend.partial = part
+   } else {
+   pend.parts = append(pend.parts, part)
+   }
+   }
+   if flags == 1 {
+   delete(m.Pending, seqKey)
+   return m.completeRequest(cmd, pend, seqKey)
+   } else {
+   m.Pending[seqKey] = pend
+   }
+   return nil, nil
 }
 
-func (m *Internal) completeRequest(cmd uint8, pending Pending, seqKey string) (response *Response, err error) {
+func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*response, error) {
 	headerData := pending.parts[0]
 	header := &pb.Header{}
-	err = proto.Unmarshal(headerData, header)
+	err := proto.Unmarshal(headerData, header)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Response{
+	return &response{
 		HeaderData: headerData,
 		Uri:        *header.Uri,
 		Payload:    pending.parts[1:],
@@ -222,19 +220,20 @@ func (m *Internal) completeRequest(cmd uint8, pending Pending, seqKey string) (r
 	}, nil
 
 }
-type Pending struct {
+
+type pending struct {
 	parts   [][]byte
 	partial []byte
 }
 
-type Request struct {
+type request struct {
 	Method      string
 	Uri         string
 	ContentType string
 	Payload     [][]byte
 }
 
-type Response struct {
+type response struct {
 	HeaderData []byte
 	Uri        string
 	Payload    [][]byte
@@ -242,7 +241,7 @@ type Response struct {
 	SeqKey     string
 }
 
-func (res *Response) CombinePayload() []byte {
+func (res *response) CombinePayload() []byte {
 	body := make([]byte, 0)
 	for _, p := range res.Payload {
 		body = append(body, p...)

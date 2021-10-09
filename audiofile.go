@@ -18,18 +18,18 @@ import (
 const chunkSizeK = 32768
 
 type client struct {
-	subscriptions map[string][]chan Response
-	callbacks     map[string]Callback
-	inter      *Internal
+	subscriptions map[string][]chan response
+	callbacks     map[string]callback
+	inter      *internal
 	cbMu          sync.Mutex
 }
 
 func createMercury(stream packetStream) *client {
 	client := &client{
-		callbacks:     make(map[string]Callback),
-		subscriptions: make(map[string][]chan Response),
-		inter: &Internal{
-			Pending: make(map[string]Pending),
+		callbacks:     make(map[string]callback),
+		subscriptions: make(map[string][]chan response),
+		inter: &internal{
+			Pending: make(map[string]pending),
 			Stream:  stream,
 		},
 	}
@@ -66,10 +66,10 @@ func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
 func (m *client) mercuryGet(url string) []byte {
    done := make(chan []byte)
    go m.request(
-      Request{
+      request{
          Method:  "GET", Payload: [][]byte{}, Uri: url,
       },
-      func(res Response) {
+      func(res response) {
          done <- res.CombinePayload()
       },
    )
@@ -96,11 +96,11 @@ func (m *client) getTrack(id string) (*pb.Track, error) {
    return result, nil
 }
 
-func (m *client) request(req Request, cb Callback) (err error) {
+func (m *client) request(req request, cb callback) (err error) {
    seq, err := m.inter.Request(req)
    if err != nil {
       if cb != nil {
-         cb(Response{StatusCode: 500})
+         cb(response{StatusCode: 500})
       }
       return err
    }
@@ -254,12 +254,12 @@ func (a *audioFile) Read(buf []byte) (int, error) {
    // cursorEnd is the ending position in the output buffer. It is either the
    // current outBufCursor + the size of a chunk, in bytes, or the length of
    // the buffer, whichever is smallest.
-   cursorEnd := Min(outBufCursor+chunkByteSizeK, length)
+   cursorEnd := min(outBufCursor+chunkByteSizeK, length)
    writtenLen := cursorEnd - outBufCursor
    // Calculate where our data cursor will end: either at the boundary of the
    // current chunk, or the end of the song itself
-   dataCursorEnd := Min(a.cursor+writtenLen, (chunkIdx+1)*chunkByteSizeK)
-   dataCursorEnd = Min(dataCursorEnd, int(a.size))
+   dataCursorEnd := min(a.cursor+writtenLen, (chunkIdx+1)*chunkByteSizeK)
+   dataCursorEnd = min(dataCursorEnd, int(a.size))
    writtenLen = dataCursorEnd - a.cursor
    if writtenLen <= 0 {
    // No more space in the output buffer, bail out
@@ -288,7 +288,7 @@ func (a *audioFile) headerOffset() int {
 	switch {
 	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
 		a.format == pb.AudioFile_OGG_VORBIS_320:
-		return OggSkipBytesK
+		return oggSkipBytesK
 
 	default:
 		return 0
