@@ -4,21 +4,19 @@ import (
    "crypto/hmac"
    "crypto/rand"
    "crypto/sha1"
-   "github.com/89z/spotify/crypto"
    "log"
    "math/big"
    "sync"
 )
 
-
 func CreateStream(keys SharedKeys, conn PlainConnection) PacketStream {
-	s := &crypto.ShannonStream{
+	s := &ShannonStream{
 		Reader: conn.Reader,
 		Writer: conn.Writer,
 		Mutex:  &sync.Mutex{},
 	}
-	crypto.SetKey(&s.RecvCipher, keys.recvKey)
-	crypto.SetKey(&s.SendCipher, keys.sendKey)
+	SetKey(&s.RecvCipher, keys.recvKey)
+	SetKey(&s.SendCipher, keys.sendKey)
 	return s
 }
 
