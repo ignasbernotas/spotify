@@ -15,7 +15,7 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if err := spotify.DownloadTrackID(session, track); err != nil {
+   if err := session.DownloadTrackID(track); err != nil {
       panic(err)
    }
 }

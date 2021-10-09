@@ -6,6 +6,8 @@ import (
    "encoding/base64"
    "encoding/json"
    "errors"
+   "github.com/89z/spotify/pb"
+   "github.com/golang/protobuf/proto"
    "log"
    "math/big"
    "math/rand"
@@ -124,22 +126,9 @@ func randomVec(count int) []byte {
 	return b
 }
 
-type album struct {
-	Artists []artist `json:"artists"`
-	Image   string   `json:"image"`
-	Name    string   `json:"name"`
-	Uri     string   `json:"uri"`
-}
-
 type apList struct {
 	ApListNoType []string `json:"ap_list"`
 	ApList       []string `json:"accesspoint"`
-}
-
-type artist struct {
-	Image string `json:"image"`
-	Name  string `json:"name"`
-	Uri   string `json:"uri"`
 }
 
 type blobInfo struct {
@@ -196,12 +185,34 @@ type sharedKeys struct {
 	recvKey   []byte
 }
 
-type track struct {
-	Album      album    `json:"album"`
-	Artists    []artist `json:"artists"`
-	Image      string   `json:"image"`
-	Name       string   `json:"name"`
-	Uri        string   `json:"uri"`
-	Duration   int      `json:"duration"`
-	Popularity float32  `json:"popularity"`
+func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
+	hello := &pb.ClientHello{
+		BuildInfo: &pb.BuildInfo{
+			Product:      pb.Product_PRODUCT_CLIENT.Enum(), // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
+			ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
+			Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
+			Version:      proto.Uint64(0x10800000000),
+		},
+		FingerprintsSupported: []pb.Fingerprint{},
+		CryptosuitesSupported: []pb.Cryptosuite{
+			pb.Cryptosuite_CRYPTO_SUITE_SHANNON},
+		LoginCryptoHello: &pb.LoginCryptoHelloUnion{
+			DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
+				Gc:              publicKey,
+				ServerKeysKnown: proto.Uint32(1),
+			},
+		},
+		ClientNonce: nonce,
+		FeatureSet: &pb.FeatureSet{
+			Autoupdate2: proto.Bool(true),
+		},
+		Padding: []byte{0x1e},
+	}
+
+	packetData, err := proto.Marshal(hello)
+	if err != nil {
+		log.Fatal("login marshaling error: ", err)
+	}
+
+	return packetData
 }

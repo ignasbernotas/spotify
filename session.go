@@ -7,7 +7,9 @@ import (
    "github.com/golang/protobuf/proto"
    "io"
    "log"
+   "math/big"
    "net"
+   "os"
    "time"
 )
 
@@ -189,34 +191,131 @@ func (s *Session) handle(cmd uint8, data []byte) {
    }
 }
 
-func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
-	hello := &pb.ClientHello{
-		BuildInfo: &pb.BuildInfo{
-			Product:      pb.Product_PRODUCT_CLIENT.Enum(), // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
-			ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
-			Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
-			Version:      proto.Uint64(0x10800000000),
-		},
-		FingerprintsSupported: []pb.Fingerprint{},
-		CryptosuitesSupported: []pb.Cryptosuite{
-			pb.Cryptosuite_CRYPTO_SUITE_SHANNON},
-		LoginCryptoHello: &pb.LoginCryptoHelloUnion{
-			DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
-				Gc:              publicKey,
-				ServerKeysKnown: proto.Uint32(1),
-			},
-		},
-		ClientNonce: nonce,
-		FeatureSet: &pb.FeatureSet{
-			Autoupdate2: proto.Bool(true),
-		},
-		Padding: []byte{0x1e},
-	}
+func Login(username string, password string, deviceName string) (*Session, error) {
+   private := new(big.Int)
+   private.SetBytes(randomVec(95))
+   DH_GENERATOR := big.NewInt(0x2)
+   DH_PRIME := new(big.Int)
+   // datatracker.ietf.org/doc/html/rfc2412#appendix-E.1
+   DH_PRIME.SetBytes([]byte{
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9, 0x0f, 0xda, 0xa2,
+      0x21, 0x68, 0xc2, 0x34, 0xc4, 0xc6, 0x62, 0x8b, 0x80, 0xdc, 0x1c, 0xd1,
+      0x29, 0x02, 0x4e, 0x08, 0x8a, 0x67, 0xcc, 0x74, 0x02, 0x0b, 0xbe, 0xa6,
+      0x3b, 0x13, 0x9b, 0x22, 0x51, 0x4a, 0x08, 0x79, 0x8e, 0x34, 0x04, 0xdd,
+      0xef, 0x95, 0x19, 0xb3, 0xcd, 0x3a, 0x43, 0x1b, 0x30, 0x2b, 0x0a, 0x6d,
+      0xf2, 0x5f, 0x14, 0x37, 0x4f, 0xe1, 0x35, 0x6d, 0x6d, 0x51, 0xc2, 0x45,
+      0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6, 0xf4, 0x4c, 0x42, 0xe9,
+      0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   })
+   ses := &Session{
+      keys: privateKeys{
+         clientNonce: randomVec(0x10),
+         generator:   DH_GENERATOR,
+         prime:       DH_PRIME,
+         privateKey: private,
+         publicKey:  powm(DH_GENERATOR, private, DH_PRIME),
+      },
+      mercuryConstructor: createMercury,
+      shannonConstructor: createStream,
+   }
+   err := ses.doConnect()
+   if err != nil {
+      return nil, err
+   }
+   if err := ses.loginSession(username, password, deviceName); err != nil {
+      return nil, err
+   }
+   return ses, nil
+}
 
-	packetData, err := proto.Marshal(hello)
+func (s *Session) loginSession(username string, password string, deviceName string) error {
+	s.deviceId = generateDeviceId(deviceName)
+	s.deviceName = deviceName
+
+	err := s.startConnection()
 	if err != nil {
-		log.Fatal("login marshaling error: ", err)
+		return err
+	}
+	loginPacket := makeLoginPasswordPacket(username, password, s.deviceId)
+	return s.doLogin(loginPacket, username)
+}
+
+func (s *Session) doLogin(packet []byte, username string) error {
+   err := s.stream.SendPacket(packetLogin, packet)
+   if err != nil {
+   log.Fatal("bad shannon write", err)
+   }
+   // Pll once for authentication response
+   welcome, err := s.handleLogin()
+   if err != nil {
+   return err
+   }
+   // Store the few interesting values
+   s.username = welcome.GetCanonicalUsername()
+   if s.username == "" {
+   s.username = s.discovery.loginBlob.Username
+   }
+   s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
+   // Poll for acknowledge before loading - needed for gopherjs
+   go s.runPollLoop()
+   return nil
+}
+
+func (s *Session) handleLogin() (*pb.APWelcome, error) {
+	cmd, data, err := s.stream.RecvPacket()
+	if err != nil {
+		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	return packetData
+	if cmd == packetAuthFailure {
+		failure := &pb.APLoginFailed{}
+		err := proto.Unmarshal(data, failure)
+		if err != nil {
+			return nil, fmt.Errorf("authenticated failed: %v", err)
+		}
+		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
+	} else if cmd == packetAPWelcome {
+		welcome := &pb.APWelcome{}
+		err := proto.Unmarshal(data, welcome)
+		if err != nil {
+			return nil, fmt.Errorf("authentication failed: %v", err)
+		}
+		return welcome, nil
+	} else {
+		return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
+	}
+}
+
+
+func (ses *Session) DownloadTrackID(id string) error {
+   hex := fmt.Sprintf("%x", convert62(id))
+   tra, err := ses.mercury.getTrack(hex)
+   if err != nil {
+      return fmt.Errorf("failed to get track metadata %v", err)
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range tra.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.player.loadTrack(selectedFile, tra.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := GetTrackInfo(tra)
+   fmt.Printf("%+v\n", track)
+   file, err := os.Create(track.TrackName + ".ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(audioFile); err != nil {
+      return err
+   }
+   return nil
 }
