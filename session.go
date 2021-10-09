@@ -109,18 +109,6 @@ func (s *Session) startConnection() error {
 	return nil
 }
 
-// NEED THIS
-func setupSession() (*Session, error) {
-	session := &Session{
-		keys:               GenerateKeys(),
-		mercuryConstructor: CreateMercury,
-		shannonConstructor: CreateStream,
-	}
-	err := session.doConnect()
-
-	return session, err
-}
-
 func (s *Session) doConnect() error {
 	apUrl, err := APResolve()
 	if err != nil {

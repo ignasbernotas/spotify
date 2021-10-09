@@ -6,24 +6,53 @@ import (
    "github.com/golang/protobuf/proto"
    "io"
    "log"
+   "math/big"
    "os"
    "time"
 )
 
-var Version = "master"
-var BuildID = "dev"
-
-// NEED THIS
-func CoreLogin(username string, password string, deviceName string) (*Session, error) {
-	s, err := setupSession()
-	if err != nil {
-		return s, err
-	}
-
-	return s, s.loginSession(username, password, deviceName)
+func setupSession() (*Session, error) {
+   private := new(big.Int)
+   private.SetBytes(RandomVec(95))
+   nonce := RandomVec(0x10)
+   DH_GENERATOR := big.NewInt(0x2)
+   DH_PRIME := new(big.Int)
+   DH_PRIME.SetBytes([]byte{
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9, 0x0f, 0xda, 0xa2,
+      0x21, 0x68, 0xc2, 0x34, 0xc4, 0xc6, 0x62, 0x8b, 0x80, 0xdc, 0x1c, 0xd1,
+      0x29, 0x02, 0x4e, 0x08, 0x8a, 0x67, 0xcc, 0x74, 0x02, 0x0b, 0xbe, 0xa6,
+      0x3b, 0x13, 0x9b, 0x22, 0x51, 0x4a, 0x08, 0x79, 0x8e, 0x34, 0x04, 0xdd,
+      0xef, 0x95, 0x19, 0xb3, 0xcd, 0x3a, 0x43, 0x1b, 0x30, 0x2b, 0x0a, 0x6d,
+      0xf2, 0x5f, 0x14, 0x37, 0x4f, 0xe1, 0x35, 0x6d, 0x6d, 0x51, 0xc2, 0x45,
+      0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6, 0xf4, 0x4c, 0x42, 0xe9,
+      0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   })
+   session := &Session{
+      keys: PrivateKeys{
+         clientNonce: nonce,
+         generator:   DH_GENERATOR,
+         prime:       DH_PRIME,
+         privateKey: private,
+         publicKey:  Powm(DH_GENERATOR, private, DH_PRIME),
+      },
+      mercuryConstructor: CreateMercury,
+      shannonConstructor: CreateStream,
+   }
+   err := session.doConnect()
+   if err != nil {
+      return nil, err
+   }
+   return session, nil
 }
 
-// NEED THIS
+func CoreLogin(username string, password string, deviceName string) (*Session, error) {
+   s, err := setupSession()
+   if err != nil {
+      return s, err
+   }
+   return s, s.loginSession(username, password, deviceName)
+}
+
 func (s *Session) loginSession(username string, password string, deviceName string) error {
 	s.deviceId = GenerateDeviceId(deviceName)
 	s.deviceName = deviceName
@@ -36,25 +65,6 @@ func (s *Session) loginSession(username string, password string, deviceName stri
 	return s.doLogin(loginPacket, username)
 }
 
-func CoreLoginSaved(username string, authData []byte, deviceName string) (*Session, error) {
-	s, err := setupSession()
-	if err != nil {
-		return s, err
-	}
-	s.deviceId = GenerateDeviceId(deviceName)
-	s.deviceName = deviceName
-
-	err = s.startConnection()
-	if err != nil {
-		return s, err
-	}
-
-	packet := makeLoginBlobPacket(username, authData,
-		pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
-	return s, s.doLogin(packet, username)
-}
-
-// NEED THIS
 func (s *Session) doLogin(packet []byte, username string) error {
 	err := s.stream.SendPacket(PacketLogin, packet)
 	if err != nil {
