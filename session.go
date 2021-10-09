@@ -51,62 +51,51 @@ func (s *Session) Player() *player {
 	return s.player
 }
 
-// NEED THIS
 func (s *Session) startConnection() error {
-	conn := MakePlainConnection(s.tcpCon, s.tcpCon)
-
-	helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
-	initClientPacket, err := conn.SendPrefixPacket([]byte{0, 4}, helloMessage)
-	if err != nil {
-		log.Fatal("Error writing client hello", err)
-		return err
-	}
-
-	// Wait and read the hello reply
-	initServerPacket, err := conn.RecvPacket()
-	if err != nil {
-		log.Fatal("Error receving packet for hello: ", err)
-		return err
-	}
-
-	response := pb.APResponseMessage{}
-	err = proto.Unmarshal(initServerPacket[4:], &response)
-	if err != nil {
-		log.Fatal("Failed to unmarshal server hello", err)
-		return err
-	}
-
-	remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
-	sharedKeys := s.keys.AddRemoteKey(remoteKey, initClientPacket, initServerPacket)
-
-	plainResponse := &pb.ClientResponsePlaintext{
-		LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
-			DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
-				Hmac: sharedKeys.Challenge(),
-			},
-		},
-		PowResponse:    &pb.PoWResponseUnion{},
-		CryptoResponse: &pb.CryptoResponseUnion{},
-	}
-
-	plainResponseMessage, err := proto.Marshal(plainResponse)
-	if err != nil {
-		log.Fatal("marshaling error: ", err)
-		return err
-	}
-
-	_, err = conn.SendPrefixPacket([]byte{}, plainResponseMessage)
-	if err != nil {
-		log.Fatal("error writing client plain response ", err)
-		return err
-	}
-
-	s.stream = s.shannonConstructor(sharedKeys, conn)
-	s.mercury = s.mercuryConstructor(s.stream)
-
-	s.player = CreatePlayer(s.stream, s.mercury)
-
-	return nil
+   conn := MakePlainConnection(s.tcpCon, s.tcpCon)
+   helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
+   initClientPacket, err := conn.SendPrefixPacket([]byte{0, 4}, helloMessage)
+   if err != nil {
+   log.Fatal("Error writing client hello", err)
+   return err
+   }
+   // Wait and read the hello reply
+   initServerPacket, err := conn.RecvPacket()
+   if err != nil {
+   log.Fatal("Error receving packet for hello: ", err)
+   return err
+   }
+   response := pb.APResponseMessage{}
+   err = proto.Unmarshal(initServerPacket[4:], &response)
+   if err != nil {
+   log.Fatal("Failed to unmarshal server hello", err)
+   return err
+   }
+   remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
+   sharedKeys := s.keys.AddRemoteKey(remoteKey, initClientPacket, initServerPacket)
+   plainResponse := &pb.ClientResponsePlaintext{
+   LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+   DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
+   Hmac: sharedKeys.Challenge(),
+   },
+   },
+   PowResponse:    &pb.PoWResponseUnion{},
+   CryptoResponse: &pb.CryptoResponseUnion{},
+   }
+   plainResponseMessage, err := proto.Marshal(plainResponse)
+   if err != nil {
+   log.Fatal("marshaling error: ", err)
+   return err
+   }
+   _, err = conn.SendPrefixPacket([]byte{}, plainResponseMessage)
+   if err != nil {
+   log.Fatal("error writing client plain response ", err)
+   return err
+   }
+   s.stream = s.shannonConstructor(sharedKeys, conn)
+   s.mercury = s.mercuryConstructor(s.stream)
+   s.player = createPlayer(s.stream, s.mercury)
+   return nil
 }
 
 func (s *Session) doConnect() error {

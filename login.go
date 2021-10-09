@@ -64,7 +64,7 @@ func DownloadTrackID(ses *Session, id string) error {
       msg := "could not find any files of the song in the specified formats"
       return fmt.Errorf(msg)
    }
-   audioFile, err := ses.Player().LoadTrack(selectedFile, tra.GetGid())
+   audioFile, err := ses.Player().loadTrack(selectedFile, tra.GetGid())
    if err != nil {
       return fmt.Errorf("failed to download the track %v", err)
    }

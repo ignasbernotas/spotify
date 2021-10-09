@@ -117,7 +117,7 @@ type player struct {
    stream   PacketStream
 }
 
-func CreatePlayer(conn PacketStream, client *client) *player {
+func createPlayer(conn PacketStream, client *client) *player {
 	return &player{
 		stream:   conn,
 		mercury:  client,
@@ -128,7 +128,7 @@ func CreatePlayer(conn PacketStream, client *client) *player {
 	}
 }
 
-func (p *player) LoadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
+func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*AudioFile, error) {
    audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
    // Start loading the audio key
    err := audioFile.loadKey(trackId)
@@ -155,15 +155,6 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    return key, nil
 }
 
-func (p *player) AllocateChannel() *Channel {
-	p.chanLock.Lock()
-	channel := NewChannel(p.nextChan, p.releaseChannel)
-	p.nextChan++
-
-	p.channels[channel.Num] = channel
-	p.chanLock.Unlock()
-	return channel
-}
 
 func (p *player) HandleCmd(cmd byte, data []byte) {
 	switch {
@@ -380,8 +371,11 @@ func (a *AudioFile) requestChunk(chunkIndex int) {
 }
 
 func (a *AudioFile) loadChunk(chunkIndex int) error {
-   chunkData := make([]byte, ChunkByteSizeK)
-   channel := a.player.AllocateChannel()
+   a.player.chanLock.Lock()
+   channel := NewChannel(a.player.nextChan, a.player.releaseChannel)
+   a.player.nextChan++
+   a.player.channels[channel.Num] = channel
+   a.player.chanLock.Unlock()
    channel.OnHeader = a.onChannelHeader
    channel.OnData = a.onChannelData
    chunkOffsetStart := uint32(chunkIndex * ChunkSizeK)
@@ -393,18 +387,19 @@ func (a *AudioFile) loadChunk(chunkIndex int) error {
       ),
    )
    if err != nil {
-   return err
+      return err
    }
    chunkSz := 0
+   chunkData := make([]byte, ChunkByteSizeK)
    for {
-   chunk := <-a.responseChan
-   chunkLen := len(chunk)
-   if chunkLen > 0 {
-   copy(chunkData[chunkSz:chunkSz+chunkLen], chunk)
-   chunkSz += chunkLen
-   } else {
-   break
-   }
+      chunk := <-a.responseChan
+      chunkLen := len(chunk)
+      if chunkLen > 0 {
+         copy(chunkData[chunkSz:chunkSz+chunkLen], chunk)
+         chunkSz += chunkLen
+      } else {
+         break
+      }
    }
    a.putEncryptedChunk(chunkIndex, chunkData[0:chunkSz])
    return nil
