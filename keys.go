@@ -17,7 +17,7 @@ import (
    cryptoRand "crypto/rand"
 )
 
-func CreateStream(keys SharedKeys, conn PlainConnection) PacketStream {
+func CreateStream(keys SharedKeys, conn plainConnection) packetStream {
 	s := &ShannonStream{
 		Reader: conn.Reader,
 		Writer: conn.Writer,

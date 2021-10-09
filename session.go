@@ -13,11 +13,11 @@ import (
 
 type Session struct {
 	/// Constructor references
-	mercuryConstructor func(conn PacketStream) *client
-	shannonConstructor func(keys SharedKeys, conn PlainConnection) PacketStream
+	mercuryConstructor func(conn packetStream) *client
+	shannonConstructor func(keys SharedKeys, conn plainConnection) packetStream
 
 	/// Managers and helpers
-	stream PacketStream
+	stream packetStream
 	mercury *client
 	discovery *Discovery
 	player *player
@@ -35,7 +35,7 @@ type Session struct {
 	country string
 }
 
-func (s *Session) Stream() PacketStream {
+func (s *Session) Stream() packetStream {
 	return s.stream
 }
 
@@ -52,24 +52,24 @@ func (s *Session) Player() *player {
 }
 
 func (s *Session) startConnection() error {
-   conn := MakePlainConnection(s.tcpCon, s.tcpCon)
+   conn := makePlainConnection(s.tcpCon, s.tcpCon)
    helloMessage := makeHelloMessage(s.keys.PubKey(), s.keys.ClientNonce())
-   initClientPacket, err := conn.SendPrefixPacket([]byte{0, 4}, helloMessage)
+   initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
    if err != nil {
-   log.Fatal("Error writing client hello", err)
-   return err
+      log.Fatal("Error writing client hello", err)
+      return err
    }
    // Wait and read the hello reply
-   initServerPacket, err := conn.RecvPacket()
+   initServerPacket, err := conn.recvPacket()
    if err != nil {
-   log.Fatal("Error receving packet for hello: ", err)
-   return err
+      log.Fatal("Error receving packet for hello: ", err)
+      return err
    }
    response := pb.APResponseMessage{}
    err = proto.Unmarshal(initServerPacket[4:], &response)
    if err != nil {
-   log.Fatal("Failed to unmarshal server hello", err)
-   return err
+      log.Fatal("Failed to unmarshal server hello", err)
+      return err
    }
    remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
    sharedKeys := s.keys.AddRemoteKey(remoteKey, initClientPacket, initServerPacket)
@@ -87,7 +87,7 @@ func (s *Session) startConnection() error {
    log.Fatal("marshaling error: ", err)
    return err
    }
-   _, err = conn.SendPrefixPacket([]byte{}, plainResponseMessage)
+   _, err = conn.sendPrefixPacket([]byte{}, plainResponseMessage)
    if err != nil {
    log.Fatal("error writing client plain response ", err)
    return err

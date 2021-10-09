@@ -126,7 +126,7 @@ type Internal struct {
 	seqLock sync.Mutex
 	nextSeq uint32
 	Pending map[string]Pending
-	Stream  PacketStream
+	Stream  packetStream
 }
 
 func (m *Internal) NextSeq() (uint32, []byte) {

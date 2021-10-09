@@ -24,7 +24,7 @@ type client struct {
 	cbMu          sync.Mutex
 }
 
-func createMercury(stream PacketStream) *client {
+func createMercury(stream packetStream) *client {
 	client := &client{
 		callbacks:     make(map[string]Callback),
 		subscriptions: make(map[string][]chan Response),
@@ -116,10 +116,10 @@ type player struct {
    mercury  *client
    nextChan    uint16
    seqChans    sync.Map
-   stream   PacketStream
+   stream   packetStream
 }
 
-func createPlayer(conn PacketStream, client *client) *player {
+func createPlayer(conn packetStream, client *client) *player {
 	return &player{
 		stream:   conn,
 		mercury:  client,
@@ -216,7 +216,7 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
       chunkLock:     sync.RWMutex{},
       chunks:        map[int]bool{},
       chunksLoading: false,
-      decrypter:     NewAudioFileDecrypter(),
+      decrypter:     newAudioFileDecrypter(),
       fileId:        fileId,
       format:        format,
       player:        player,
@@ -429,12 +429,13 @@ func (a *audioFile) loadNextChunk() {
 }
 
 func (a *audioFile) putEncryptedChunk(index int, data []byte) {
-	byteIndex := index * ChunkByteSizeK
-	a.decrypter.DecryptAudioWithBlock(index, a.cipher, data, a.data[byteIndex:byteIndex+len(data)])
-
-	a.chunkLock.Lock()
-	a.chunks[index] = true
-	a.chunkLock.Unlock()
+   byteIndex := index * ChunkByteSizeK
+   a.decrypter.decryptAudioWithBlock(
+      index, a.cipher, data, a.data[byteIndex:byteIndex+len(data)],
+   )
+   a.chunkLock.Lock()
+   a.chunks[index] = true
+   a.chunkLock.Unlock()
 }
 
 func (a *audioFile) onChannelHeader(channel *channel, id byte, data *bytes.Reader) uint16 {
