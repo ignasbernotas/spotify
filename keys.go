@@ -170,10 +170,6 @@ func (p *privateKeys) addRemoteKey(remote []byte, clientPacket []byte, serverPac
 	}
 }
 
-func (p *privateKeys) pubKey() []byte {
-	return p.publicKey.Bytes()
-}
-
 type sharedKeys struct {
 	challenge []byte
 	sendKey   []byte

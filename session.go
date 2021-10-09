@@ -103,6 +103,7 @@ func (ses *session) DownloadTrackID(id string) error {
    }
    return nil
 }
+
 func (s *session) disconnect() {
 	if s.tcpCon != nil {
 		conn := s.tcpCon.(net.Conn)
@@ -113,6 +114,7 @@ func (s *session) disconnect() {
 		s.tcpCon = nil
 	}
 }
+
 func (s *session) doConnect() error {
    apUrl, err := apResolve()
    if err != nil {
@@ -179,6 +181,7 @@ func (s *session) handle(cmd uint8, data []byte) {
       fmt.Printf("Unhandled cmd 0x%x\n", cmd)
    }
 }
+
 func (s *session) planReconnect() {
 	go func() {
 		time.Sleep(1 * time.Second)
@@ -206,9 +209,13 @@ func (s *session) runPollLoop() {
 		}
 	}
 }
+
 func (s *session) startConnection() error {
    conn := makePlainConnection(s.tcpCon, s.tcpCon)
-   helloMessage := makeHelloMessage(s.keys.pubKey(), s.keys.clientNonce)
+   helloMessage := makeHelloMessage(
+      s.keys.publicKey.Bytes(),
+      s.keys.clientNonce,
+   )
    initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
    if err != nil {
       log.Fatal("Error writing client hello", err)
@@ -255,19 +262,18 @@ func (s *session) startConnection() error {
    return nil
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-
 func (s *session) loginSession(username string, password string, deviceName string) error {
-	s.deviceId = generateDeviceId(deviceName)
-	s.deviceName = deviceName
-
-	err := s.startConnection()
-	if err != nil {
-		return err
-	}
-	loginPacket := makeLoginPasswordPacket(username, password, s.deviceId)
-	return s.doLogin(loginPacket, username)
+   s.deviceId = generateDeviceId(deviceName)
+   s.deviceName = deviceName
+   err := s.startConnection()
+   if err != nil {
+      return err
+   }
+   loginPacket := makeLoginBlobPacket(
+      username, []byte(password),
+      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), s.deviceId,
+   )
+   return s.doLogin(loginPacket, username)
 }
 
 func (s *session) doLogin(packet []byte, username string) error {
