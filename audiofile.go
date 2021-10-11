@@ -3,10 +3,8 @@ package spotify
 import (
    "bytes"
    "crypto/aes"
-   "crypto/cipher"
    "encoding/binary"
    "fmt"
-   "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
    "io"
    "log"
@@ -81,14 +79,6 @@ func (m *client) mercuryGetProto(url string, result proto.Message) error {
    return proto.Unmarshal(data, result)
 }
 
-func (m *client) getTrack(id string) (*pb.Track, error) {
-   result := new(pb.Track)
-   err := m.mercuryGetProto("hm://metadata/4/track/" + id, result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
 
 func (m *client) request(req request, cb callback) (err error) {
    seq, err := m.inter.request(req)
@@ -122,18 +112,6 @@ func createPlayer(conn packetStream, client *client) *player {
 		chanLock: sync.Mutex{},
 		nextChan: 0,
 	}
-}
-
-func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, error) {
-   audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
-   // Start loading the audio key
-   err := audioFile.loadKey(trackId)
-   if err != nil {
-      return nil, err
-   }
-   // Then start loading the audio itself
-   audioFile.loadChunks()
-   return audioFile, nil
 }
 
 func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
@@ -186,38 +164,6 @@ func (p *player) releaseChannel(channel *channel) {
 	p.chanLock.Lock()
 	delete(p.channels, channel.Num)
 	p.chanLock.Unlock()
-}
-
-type audioFile struct {
-   chunkLoadOrder []int
-   chunkLock      sync.RWMutex
-   chunks         map[int]bool
-   chunksLoading  bool
-   cipher         cipher.Block
-   cursor         int
-   data           []byte
-   decrypter      *audioFileDecrypter
-   fileId         []byte
-   format         pb.AudioFile_Format
-   lock           sync.RWMutex
-   player         *player
-   responseChan   chan []byte
-   size           uint32
-}
-
-func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
-   return &audioFile{
-      chunkLock:     sync.RWMutex{},
-      chunks:        map[int]bool{},
-      chunksLoading: false,
-      decrypter:     newAudioFileDecrypter(),
-      fileId:        fileId,
-      format:        format,
-      player:        player,
-      responseChan:  make(chan []byte),
-      // Set an initial size to fetch the first chunk regardless of the actual size
-      size: chunkSizeK,
-   }
 }
 
 func (a *audioFile) Read(buf []byte) (int, error) {
@@ -276,17 +222,6 @@ func (a *audioFile) Read(buf []byte) (int, error) {
    err = io.EOF
    }
    return totalWritten, err
-}
-
-func (a *audioFile) headerOffset() int {
-	switch {
-	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
-		a.format == pb.AudioFile_OGG_VORBIS_320:
-		return oggSkipBytesK
-
-	default:
-		return 0
-	}
 }
 
 func (a *audioFile) chunkIndexAtByte(byteIndex int) int {
