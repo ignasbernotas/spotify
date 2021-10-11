@@ -3,9 +3,13 @@ package spotify
 import (
    "crypto/cipher"
    "encoding/binary"
+   "encoding/hex"
+   "fmt"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
    "log"
+   "math/big"
+   "os"
    "sync"
    "time"
 )
@@ -235,4 +239,146 @@ func getTrackInfo(track *pb.Track) *spotifyTrack {
       )
    }
    return enc
+}
+
+func (ses *session) DownloadTrackID(id string) error {
+   b62 := new(big.Int)
+   b62.SetString(id, 62)
+   trk, err := ses.mercury.getTrack(hex.EncodeToString(b62.Bytes()))
+   if err != nil {
+      return err
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range trk.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := getTrackInfo(trk)
+   fmt.Printf("%+v\n", track)
+   file, err := os.Create(track.TrackName + ".ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(audioFile); err != nil {
+      return err
+   }
+   return nil
+}
+
+func (s *session) doReconnect() error {
+	s.disconnect()
+
+	err := s.doConnect()
+	if err != nil {
+		return err
+	}
+
+	err = s.startConnection()
+	if err != nil {
+		return err
+	}
+
+	packet := makeLoginBlobPacket(s.username, s.reusableAuthBlob,
+		pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
+	return s.doLogin(packet, s.username)
+}
+
+func (s *session) startConnection() error {
+   conn := makePlainConnection(s.tcpCon, s.tcpCon)
+   helloMessage := makeHelloMessage(
+      s.keys.publicKey.Bytes(),
+      s.keys.clientNonce,
+   )
+   initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
+   if err != nil {
+      log.Fatal("Error writing client hello", err)
+      return err
+   }
+   // Wait and read the hello reply
+   initServerPacket, err := conn.recvPacket()
+   if err != nil {
+      log.Fatal("Error receving packet for hello: ", err)
+      return err
+   }
+   response := pb.APResponseMessage{}
+   err = proto.Unmarshal(initServerPacket[4:], &response)
+   if err != nil {
+      log.Fatal("Failed to unmarshal server hello", err)
+      return err
+   }
+   remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
+   sharedKeys := s.keys.addRemoteKey(
+      remoteKey, initClientPacket, initServerPacket,
+   )
+   plainResponse := &pb.ClientResponsePlaintext{
+      CryptoResponse: &pb.CryptoResponseUnion{},
+      LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
+            Hmac: sharedKeys.challenge,
+         },
+      },
+      PowResponse:    &pb.PoWResponseUnion{},
+   }
+   plainResponseMessage, err := proto.Marshal(plainResponse)
+   if err != nil {
+   log.Fatal("marshaling error: ", err)
+   return err
+   }
+   _, err = conn.sendPrefixPacket([]byte{}, plainResponseMessage)
+   if err != nil {
+   log.Fatal("error writing client plain response ", err)
+   return err
+   }
+   s.stream = s.shannonConstructor(sharedKeys, conn)
+   s.mercury = s.mercuryConstructor(s.stream)
+   s.player = createPlayer(s.stream, s.mercury)
+   return nil
+}
+
+func (s *session) loginSession(username string, password string, deviceName string) error {
+   s.deviceId = generateDeviceId(deviceName)
+   s.deviceName = deviceName
+   err := s.startConnection()
+   if err != nil {
+      return err
+   }
+   loginPacket := makeLoginBlobPacket(
+      username, []byte(password),
+      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), s.deviceId,
+   )
+   return s.doLogin(loginPacket, username)
+}
+
+func (s *session) handleLogin() (*pb.APWelcome, error) {
+   cmd, data, err := s.stream.recvPacket()
+   if err != nil {
+      return nil, fmt.Errorf("authentication failed: %v", err)
+   }
+   if cmd == packetAuthFailure {
+      failure := &pb.APLoginFailed{}
+      err := proto.Unmarshal(data, failure)
+      if err != nil {
+         return nil, fmt.Errorf("authenticated failed: %v", err)
+      }
+      return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
+   } else if cmd == packetAPWelcome {
+      welcome := &pb.APWelcome{}
+      err := proto.Unmarshal(data, welcome)
+      if err != nil {
+         return nil, fmt.Errorf("authentication failed: %v", err)
+      }
+      return welcome, nil
+   } else {
+      return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
+   }
 }
