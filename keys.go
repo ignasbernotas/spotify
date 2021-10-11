@@ -7,8 +7,6 @@ import (
    "encoding/json"
    "errors"
    "fmt"
-   "github.com/89z/spotify/pb"
-   "github.com/golang/protobuf/proto"
    "log"
    "math/big"
    "math/rand"
@@ -126,38 +124,4 @@ type sharedKeys struct {
 	challenge []byte
 	sendKey   []byte
 	recvKey   []byte
-}
-
-func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
-   hello := &pb.ClientHello{
-      BuildInfo: &pb.BuildInfo{
-         Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
-         // authentication failed: PremiumAccountRequired
-         // Product: pb.Product_PRODUCT_PARTNER.Enum(),
-         // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
-         Product: pb.Product_PRODUCT_CLIENT.Enum(),
-         ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
-         Version:      proto.Uint64(0x10800000000),
-      },
-      FingerprintsSupported: []pb.Fingerprint{},
-      CryptosuitesSupported: []pb.Cryptosuite{
-         pb.Cryptosuite_CRYPTO_SUITE_SHANNON,
-      },
-      LoginCryptoHello: &pb.LoginCryptoHelloUnion{
-         DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
-            Gc:              publicKey,
-            ServerKeysKnown: proto.Uint32(1),
-         },
-      },
-      ClientNonce: nonce,
-      FeatureSet: &pb.FeatureSet{
-         Autoupdate2: proto.Bool(true),
-      },
-      Padding: []byte{0x1e},
-   }
-   packetData, err := proto.Marshal(hello)
-   if err != nil {
-      log.Fatal("login marshaling error: ", err)
-   }
-   return packetData
 }

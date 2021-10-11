@@ -79,7 +79,6 @@ func (m *client) mercuryGetProto(url string, result proto.Message) error {
    return proto.Unmarshal(data, result)
 }
 
-
 func (m *client) request(req request, cb callback) (err error) {
    seq, err := m.inter.request(req)
    if err != nil {
