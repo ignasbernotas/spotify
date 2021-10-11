@@ -150,66 +150,66 @@ func (s *session) doReconnect() error {
 }
 
 func (s *session) handle(cmd uint8, data []byte) {
-   switch {
-   case cmd == packetPing:
+   switch cmd {
+   case 0x1f:
+      // Unknown, data is zeroes only
+   case packetAesKey, packetAesKeyError, packetStreamChunkRes:
+      // Audio key and data responses
+      s.player.handleCmd(cmd, data)
+   case packetCountryCode:
+      s.country = string(data)
+   case packetLegacyWelcome:
+      // Empty welcome packet
+   case packetLicenseVersion:
+   case packetPing:
       // Ping
       err := s.stream.sendPacket(packetPong, data)
       if err != nil {
-      log.Fatal("Error handling PacketPing", err)
+         log.Fatal("Error handling PacketPing", err)
       }
-   case cmd == packetPongAck:
+   case packetPongAck:
       // Pong reply, ignore
-   case cmd == packetAesKey, cmd == packetAesKeyError, cmd == packetStreamChunkRes:
-      // Audio key and data responses
-      s.player.handleCmd(cmd, data)
-   case cmd == packetCountryCode:
-      s.country = fmt.Sprintf("%s", data)
-   case 0xb2 <= cmd && cmd <= 0xb6:
-      err := s.mercury.handle(cmd, bytes.NewReader(data))
-      if err != nil {
-      log.Fatal("Handle 0xbx", err)
-      }
-   case cmd == packetSecretBlock:
-      // Old RSA public key
-   case cmd == packetLegacyWelcome:
-      // Empty welcome packet
-   case cmd == packetProductInfo:
+   case packetProductInfo:
       // Has some info about A/B testing status, product setup, etc... in an
       // XML fashion.
-   case cmd == 0x1f:
-      // Unknown, data is zeroes only
-   case cmd == packetLicenseVersion:
+   case packetSecretBlock:
+      // Old RSA public key
    default:
-      fmt.Printf("Unhandled cmd 0x%x\n", cmd)
+      if 0xb2 <= cmd && cmd <= 0xb6 {
+         err := s.mercury.handle(cmd, bytes.NewReader(data))
+         if err != nil {
+            log.Fatal("Handle 0xbx", err)
+         }
+      } else {
+         fmt.Printf("Unhandled cmd 0x%x\n", cmd)
+      }
    }
 }
 
 func (s *session) planReconnect() {
-	go func() {
-		time.Sleep(1 * time.Second)
-
-		if err := s.doReconnect(); err != nil {
-			// Try to reconnect again in a second
-			s.planReconnect()
-		}
-	}()
+   go func() {
+      time.Sleep(1 * time.Second)
+      if err := s.doReconnect(); err != nil {
+         // Try to reconnect again in a second
+         s.planReconnect()
+      }
+   }()
 }
 
 func (s *session) runPollLoop() {
-	for {
-		cmd, data, err := s.stream.recvPacket()
-		if err != nil {
-			log.Println("Error during RecvPacket: ", err)
-
-			if err == io.EOF {
-				// We've been disconnected, reconnect
-				s.planReconnect()
-				break
-			}
-		} else {
-			s.handle(cmd, data)
-		}
-	}
+   for {
+      cmd, data, err := s.stream.recvPacket()
+      if err != nil {
+         log.Println("Error during RecvPacket: ", err)
+         if err == io.EOF {
+            // We've been disconnected, reconnect
+            s.planReconnect()
+            break
+         }
+      } else {
+         s.handle(cmd, data)
+      }
+   }
 }
 
 func (s *session) startConnection() error {
@@ -300,26 +300,25 @@ func (s *session) doLogin(packet []byte, username string) error {
 }
 
 func (s *session) handleLogin() (*pb.APWelcome, error) {
-	cmd, data, err := s.stream.recvPacket()
-	if err != nil {
-		return nil, fmt.Errorf("authentication failed: %v", err)
-	}
-
-	if cmd == packetAuthFailure {
-		failure := &pb.APLoginFailed{}
-		err := proto.Unmarshal(data, failure)
-		if err != nil {
-			return nil, fmt.Errorf("authenticated failed: %v", err)
-		}
-		return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
-	} else if cmd == packetAPWelcome {
-		welcome := &pb.APWelcome{}
-		err := proto.Unmarshal(data, welcome)
-		if err != nil {
-			return nil, fmt.Errorf("authentication failed: %v", err)
-		}
-		return welcome, nil
-	} else {
-		return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
-	}
+   cmd, data, err := s.stream.recvPacket()
+   if err != nil {
+      return nil, fmt.Errorf("authentication failed: %v", err)
+   }
+   if cmd == packetAuthFailure {
+      failure := &pb.APLoginFailed{}
+      err := proto.Unmarshal(data, failure)
+      if err != nil {
+         return nil, fmt.Errorf("authenticated failed: %v", err)
+      }
+      return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
+   } else if cmd == packetAPWelcome {
+      welcome := &pb.APWelcome{}
+      err := proto.Unmarshal(data, welcome)
+      if err != nil {
+         return nil, fmt.Errorf("authentication failed: %v", err)
+      }
+      return welcome, nil
+   } else {
+      return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
+   }
 }

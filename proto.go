@@ -60,12 +60,12 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
 }
 
 func (a *audioFile) headerOffset() int {
-	switch {
-	case a.format == pb.AudioFile_OGG_VORBIS_96 || a.format == pb.AudioFile_OGG_VORBIS_160 ||
-		a.format == pb.AudioFile_OGG_VORBIS_320:
-		return oggSkipBytesK
-
-	default:
-		return 0
-	}
+   switch a.format {
+   case
+   pb.AudioFile_OGG_VORBIS_160,
+   pb.AudioFile_OGG_VORBIS_320,
+   pb.AudioFile_OGG_VORBIS_96:
+      return oggSkipBytesK
+   }
+   return 0
 }
