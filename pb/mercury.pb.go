@@ -14,6 +14,7 @@ var MercuryReply_CachePolicy_name = map[int32]string{
 	2: "CACHE_PRIVATE",
 	3: "CACHE_PUBLIC",
 }
+
 var MercuryReply_CachePolicy_value = map[string]int32{
 	"CACHE_NO":      1,
 	"CACHE_PRIVATE": 2,
@@ -25,9 +26,11 @@ func (x MercuryReply_CachePolicy) Enum() *MercuryReply_CachePolicy {
 	*p = x
 	return p
 }
+
 func (x MercuryReply_CachePolicy) String() string {
 	return proto.EnumName(MercuryReply_CachePolicy_name, int32(x))
 }
+
 func (x *MercuryReply_CachePolicy) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(MercuryReply_CachePolicy_value, data, "MercuryReply_CachePolicy")
 	if err != nil {
