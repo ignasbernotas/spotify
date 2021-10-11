@@ -11,19 +11,18 @@ import (
    "math/big"
    "os"
    "sync"
-   "time"
 )
 
 func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, error) {
-   audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
+   aFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
    // Start loading the audio key
-   err := audioFile.loadKey(trackId)
+   err := aFile.loadKey(trackId)
    if err != nil {
       return nil, err
    }
    // Then start loading the audio itself
-   audioFile.loadChunks()
-   return audioFile, nil
+   aFile.loadChunks()
+   return aFile, nil
 }
 
 type audioFile struct {
@@ -198,39 +197,7 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
 }
 
 func getTrackInfo(track *pb.Track) *spotifyTrack {
-   enc := new(spotifyTrack)
-   enc.TrackName = track.GetName()
-   enc.TrackNumber = track.GetNumber()
-   // convert ms to seconds
-   enc.TrackDuration = (track.GetDuration() / 1000)
-   enc.TrackDiscNumber = track.GetDiscNumber()
-   album := track.GetAlbum()
-   if album != nil {
-      enc.Album.Name = album.GetName()
-      enc.Album.Label = album.GetLabel()
-      enc.Album.Genre = album.GetGenre()
-      albumDate := album.GetDate()
-      if albumDate != nil {
-         enc.Album.Date = time.Date(
-            int(albumDate.GetYear()),
-            time.Month(int(albumDate.GetMonth())),
-            int(albumDate.GetDay()), 0, 0, 0, 0, time.UTC,
-         )
-      }
-      albumArtists := album.GetArtist()
-      for _, artist := range albumArtists {
-         enc.Album.ArtistNames = append(
-            enc.Album.ArtistNames, artist.GetName(),
-         )
-      }
-   }
-   trackArtists := track.GetArtist()
-   for _, artist := range trackArtists {
-      enc.TrackArtistNames = append(
-         enc.TrackArtistNames, artist.GetName(),
-      )
-   }
-   return enc
+   return new(spotifyTrack)
 }
 
 func (ses *session) DownloadTrackID(id string) error {
@@ -252,7 +219,7 @@ func (ses *session) DownloadTrackID(id string) error {
       msg := "could not find any files of the song in the specified formats"
       return fmt.Errorf(msg)
    }
-   audioFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
+   aFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
    if err != nil {
       return fmt.Errorf("failed to download the track %v", err)
    }
@@ -263,7 +230,7 @@ func (ses *session) DownloadTrackID(id string) error {
       return err
    }
    defer file.Close()
-   if _, err := file.ReadFrom(audioFile); err != nil {
+   if _, err := file.ReadFrom(aFile); err != nil {
       return err
    }
    return nil

@@ -191,19 +191,18 @@ func (res *response) combinePayload() []byte {
 // use these structs because they are much easier to work with than protobuf
 // structs
 type spotifyAlbum struct {
-	Name        string
-	Label       string
-	Genre       []string
-	Date        time.Time
-	ArtistNames []string
+   artistNames []string
+   Date        time.Time
+   Genre       []string
+   Label       string
+   Name        string
 }
 
 type spotifyTrack struct {
-	AudioFile        io.Reader
-	TrackName        string
-	TrackNumber      int32
-	TrackDuration    int32
-	TrackDiscNumber  int32
-	TrackArtistNames []string
-	Album            spotifyAlbum
+   Album            spotifyAlbum
+   AudioFile        io.Reader
+   TrackDiscNumber  int32
+   TrackDuration    int32
+   TrackName        string
+   TrackNumber      int32
 }
