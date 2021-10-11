@@ -164,40 +164,36 @@ func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*
 }
 
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) []byte {
-	packet := &pb.ClientResponseEncrypted{
-		LoginCredentials: &pb.LoginCredentials{
-			Username: proto.String(username),
-			Typ:      authType,
-			AuthData: authData,
-		},
-		AccountCreation: pb.AccountCreation_ACCOUNT_CREATION_ALWAYS_PROMPT.Enum(),
-		SystemInfo: &pb.SystemInfo{
-			CpuFamily:               pb.CpuFamily_CPU_X86_64.Enum(),
-			CpuSubtype:              proto.Uint32(0),
-			Brand:                   pb.Brand_BRAND_UNBRANDED.Enum(),
-			BrandFlags:              proto.Uint32(0),
-			Os:                      pb.Os_OS_LINUX.Enum(),
-			OsVersion:               proto.Uint32(0),
-			OsExt:                   proto.Uint32(0),
-			SystemInformationString: proto.String("Linux [x86-64 0]"),
-			DeviceId:                proto.String("libspotify"),
-		},
-		PlatformModel: proto.String("PC desktop"),
-		VersionString: proto.String("1.1.10.546.ge08ef575"),
-		ClientInfo: &pb.ClientInfo{
-			Limited:  proto.Bool(false),
-			Language: proto.String("en"),
-		},
-	}
-	packetData, err := proto.Marshal(packet)
-	if err != nil {
-		log.Fatal("login marshaling error: ", err)
-	}
-	return packetData
-}
-
-func getTrackInfo(track *pb.Track) *spotifyTrack {
-   return new(spotifyTrack)
+   packet := &pb.ClientResponseEncrypted{
+      LoginCredentials: &pb.LoginCredentials{
+         Username: proto.String(username),
+         Typ:      authType,
+         AuthData: authData,
+      },
+      AccountCreation: pb.AccountCreation_ACCOUNT_CREATION_ALWAYS_PROMPT.Enum(),
+      SystemInfo: &pb.SystemInfo{
+         Brand:                   pb.Brand_BRAND_UNBRANDED.Enum(),
+         BrandFlags:              proto.Uint32(0),
+         CpuFamily:               pb.CpuFamily_CPU_X86_64.Enum(),
+         CpuSubtype:              proto.Uint32(0),
+         DeviceId:                proto.String("libspotify"),
+         Os:                      pb.Os_OS_LINUX.Enum(),
+         OsExt:                   proto.Uint32(0),
+         OsVersion:               proto.Uint32(0),
+         SystemInformationString: proto.String("Linux [x86-64 0]"),
+      },
+      PlatformModel: proto.String("PC desktop"),
+      VersionString: proto.String("1.1.10.546.ge08ef575"),
+      ClientInfo: &pb.ClientInfo{
+         Language: proto.String("en"),
+         Limited:  proto.Bool(false),
+      },
+   }
+   packetData, err := proto.Marshal(packet)
+   if err != nil {
+      log.Fatal("login marshaling error: ", err)
+   }
+   return packetData
 }
 
 func (ses *session) DownloadTrackID(id string) error {
@@ -221,11 +217,9 @@ func (ses *session) DownloadTrackID(id string) error {
    }
    aFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
    if err != nil {
-      return fmt.Errorf("failed to download the track %v", err)
+      return err
    }
-   track := getTrackInfo(trk)
-   fmt.Printf("%+v\n", track)
-   file, err := os.Create(track.TrackName + ".ogg")
+   file, err := os.Create("file.ogg")
    if err != nil {
       return err
    }
@@ -237,21 +231,20 @@ func (ses *session) DownloadTrackID(id string) error {
 }
 
 func (s *session) doReconnect() error {
-	s.disconnect()
-
-	err := s.doConnect()
-	if err != nil {
-		return err
-	}
-
-	err = s.startConnection()
-	if err != nil {
-		return err
-	}
-
-	packet := makeLoginBlobPacket(s.username, s.reusableAuthBlob,
-		pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(), s.deviceId)
-	return s.doLogin(packet, s.username)
+   s.disconnect()
+   err := s.doConnect()
+   if err != nil {
+      return err
+   }
+   if err := s.startConnection(); err != nil {
+      return err
+   }
+   packet := makeLoginBlobPacket(
+      s.username, s.reusableAuthBlob,
+      pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(),
+      s.deviceId,
+   )
+   return s.doLogin(packet, s.username)
 }
 
 func (s *session) startConnection() error {

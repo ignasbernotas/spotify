@@ -6,7 +6,6 @@ import (
    "fmt"
    "io"
    "sync"
-   "time"
 )
 
 const chunkByteSizeK = chunkSizeK * 4
@@ -186,23 +185,4 @@ func (res *response) combinePayload() []byte {
 		body = append(body, p...)
 	}
 	return body
-}
-
-// use these structs because they are much easier to work with than protobuf
-// structs
-type spotifyAlbum struct {
-   artistNames []string
-   Date        time.Time
-   Genre       []string
-   Label       string
-   Name        string
-}
-
-type spotifyTrack struct {
-   Album            spotifyAlbum
-   AudioFile        io.Reader
-   TrackDiscNumber  int32
-   TrackDuration    int32
-   TrackName        string
-   TrackNumber      int32
 }
