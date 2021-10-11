@@ -14,15 +14,6 @@ import (
    "time"
 )
 
-func (m *client) getTrack(id string) (*pb.Track, error) {
-   result := new(pb.Track)
-   err := m.mercuryGetProto("hm://metadata/4/track/" + id, result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
 func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, error) {
    audioFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
    // Start loading the audio key
@@ -36,6 +27,7 @@ func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, erro
 }
 
 type audioFile struct {
+   aFormat         pb.AudioFile_Format
    chunkLoadOrder []int
    chunkLock      sync.RWMutex
    chunks         map[int]bool
@@ -45,7 +37,6 @@ type audioFile struct {
    data           []byte
    decrypter      *audioFileDecrypter
    fileId         []byte
-   format         pb.AudioFile_Format
    lock           sync.RWMutex
    player         *player
    responseChan   chan []byte
@@ -59,16 +50,17 @@ func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, play
       chunksLoading: false,
       decrypter:     newAudioFileDecrypter(),
       fileId:        fileId,
-      format:        format,
+      aFormat:        format,
       player:        player,
       responseChan:  make(chan []byte),
-      // Set an initial size to fetch the first chunk regardless of the actual size
+      // Set an initial size to fetch the first chunk regardless of the actual
+      // size
       size: chunkSizeK,
    }
 }
 
 func (a *audioFile) headerOffset() int {
-   switch a.format {
+   switch a.aFormat {
    case
    pb.AudioFile_OGG_VORBIS_160,
    pb.AudioFile_OGG_VORBIS_320,
@@ -244,7 +236,9 @@ func getTrackInfo(track *pb.Track) *spotifyTrack {
 func (ses *session) DownloadTrackID(id string) error {
    b62 := new(big.Int)
    b62.SetString(id, 62)
-   trk, err := ses.mercury.getTrack(hex.EncodeToString(b62.Bytes()))
+   id = hex.EncodeToString(b62.Bytes())
+   trk := new(pb.Track)
+   err := ses.mercury.mercuryGetProto("hm://metadata/4/track/" + id, trk)
    if err != nil {
       return err
    }

@@ -4,27 +4,27 @@ import "github.com/golang/protobuf/proto"
 type MercuryReply_CachePolicy int32
 
 const (
-	MercuryReply_CACHE_NO      MercuryReply_CachePolicy = 1
-	MercuryReply_CACHE_PRIVATE MercuryReply_CachePolicy = 2
-	MercuryReply_CACHE_PUBLIC  MercuryReply_CachePolicy = 3
+   MercuryReply_CACHE_NO      MercuryReply_CachePolicy = 1
+   MercuryReply_CACHE_PRIVATE MercuryReply_CachePolicy = 2
+   MercuryReply_CACHE_PUBLIC  MercuryReply_CachePolicy = 3
 )
 
 var MercuryReply_CachePolicy_name = map[int32]string{
-	1: "CACHE_NO",
-	2: "CACHE_PRIVATE",
-	3: "CACHE_PUBLIC",
+   1: "CACHE_NO",
+   2: "CACHE_PRIVATE",
+   3: "CACHE_PUBLIC",
 }
 
 var MercuryReply_CachePolicy_value = map[string]int32{
-	"CACHE_NO":      1,
-	"CACHE_PRIVATE": 2,
-	"CACHE_PUBLIC":  3,
+   "CACHE_NO":      1,
+   "CACHE_PRIVATE": 2,
+   "CACHE_PUBLIC":  3,
 }
 
 func (x MercuryReply_CachePolicy) Enum() *MercuryReply_CachePolicy {
-	p := new(MercuryReply_CachePolicy)
-	*p = x
-	return p
+   p := new(MercuryReply_CachePolicy)
+   *p = x
+   return p
 }
 
 func (x MercuryReply_CachePolicy) String() string {
