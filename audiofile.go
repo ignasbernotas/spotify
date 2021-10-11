@@ -257,37 +257,33 @@ func (a *audioFile) totalChunks() int {
 }
 
 func (a *audioFile) loadChunks() {
-	// By default, we will load the track in the normal order. If we need to skip to a specific piece of audio,
-	// we will prepend the chunks needed so that we load them as soon as possible. Since loadNextChunk will check
-	// if a chunk is already loaded (using hasChunk), we won't be downloading the same chunk multiple times.
-
-	// We can however only download the first chunk for now, as we have no idea how many chunks this track has. The
-	// remaining chunks will be added once we get the headers with the file size.
-	a.chunkLoadOrder = append(a.chunkLoadOrder, 0)
-
-	go a.loadNextChunk()
+   // By default, we will load the track in the normal order. If we need to
+   // skip to a specific piece of audio, we will prepend the chunks needed so
+   // that we load them as soon as possible. Since loadNextChunk will check if
+   // a chunk is already loaded (using hasChunk), we won't be downloading the
+   // same chunk multiple times. We can however only download the first chunk
+   // for now, as we have no idea how many chunks this track has. The remaining
+   // chunks will be added once we get the headers with the file size.
+   a.chunkLoadOrder = append(a.chunkLoadOrder, 0)
+   go a.loadNextChunk()
 }
 
 func (a *audioFile) requestChunk(chunkIndex int) {
-	a.chunkLock.RLock()
-
-	// Check if we don't already have this chunk in the 2 next chunks requested
-	if len(a.chunkLoadOrder) >= 1 && a.chunkLoadOrder[0] == chunkIndex ||
-		len(a.chunkLoadOrder) >= 2 && a.chunkLoadOrder[1] == chunkIndex {
-		a.chunkLock.RUnlock()
-		return
-	}
-
-	a.chunkLock.RUnlock()
-
-	// Set an artificial limit of 500 chunks to prevent overflows and buggy readers/seekers
-	a.chunkLock.Lock()
-
-	if len(a.chunkLoadOrder) < 500 {
-		a.chunkLoadOrder = append([]int{chunkIndex}, a.chunkLoadOrder...)
-	}
-
-	a.chunkLock.Unlock()
+   a.chunkLock.RLock()
+   // Check if we don't already have this chunk in the 2 next chunks requested
+   if len(a.chunkLoadOrder) >= 1 && a.chunkLoadOrder[0] == chunkIndex ||
+   len(a.chunkLoadOrder) >= 2 && a.chunkLoadOrder[1] == chunkIndex {
+      a.chunkLock.RUnlock()
+      return
+   }
+   a.chunkLock.RUnlock()
+   // Set an artificial limit of 500 chunks to prevent overflows and buggy
+   // readers/seekers
+   a.chunkLock.Lock()
+   if len(a.chunkLoadOrder) < 500 {
+      a.chunkLoadOrder = append([]int{chunkIndex}, a.chunkLoadOrder...)
+   }
+   a.chunkLock.Unlock()
 }
 
 func (a *audioFile) loadChunk(chunkIndex int) error {

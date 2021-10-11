@@ -15,14 +15,13 @@ import (
 
 func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
    return &audioFile{
-      chunkLock:     sync.RWMutex{},
-      chunks:        map[int]bool{},
-      chunksLoading: false,
-      decrypter:     newAudioFileDecrypter(),
-      fileId:        fileId,
-      aFormat:        format,
-      player:        player,
-      responseChan:  make(chan []byte),
+      chunkLock: sync.RWMutex{},
+      chunks: map[int]bool{},
+      decrypter: newAudioFileDecrypter(),
+      fileId: fileId,
+      aFormat: format,
+      player: player,
+      responseChan: make(chan []byte),
       // Set an initial size to fetch the first chunk regardless of the actual
       // size
       size: chunkSizeK,
@@ -199,7 +198,11 @@ func (ses *session) DownloadTrackID(id string) error {
       return fmt.Errorf(msg)
    }
    trackID := trk.GetGid()
-   aFile := newAudioFileWithIdAndFormat(fSelect.FileId, fSelect.GetFormat(), ses.player)
+   aFile := newAudioFileWithIdAndFormat(
+      fSelect.FileId,
+      pb.AudioFile_OGG_VORBIS_160,
+      ses.player,
+   )
    // Start loading the audio key
    if err := aFile.loadKey(trackID); err != nil {
       return err

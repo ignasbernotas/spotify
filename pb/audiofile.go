@@ -26,8 +26,8 @@ func (m *AudioFile) GetFileId() []byte {
 }
 
 func (m *AudioFile) GetFormat() AudioFile_Format {
-	if m != nil && m.Format != nil {
-		return *m.Format
-	}
-	return AudioFile_OGG_VORBIS_96
+   if m != nil && m.Format != nil {
+      return *m.Format
+   }
+   return AudioFile_OGG_VORBIS_96
 }
