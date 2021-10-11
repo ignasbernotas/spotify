@@ -13,16 +13,20 @@ import (
    "sync"
 )
 
-func (p *player) loadTrack(file *pb.AudioFile, trackId []byte) (*audioFile, error) {
-   aFile := newAudioFileWithIdAndFormat(file.FileId, file.GetFormat(), p)
-   // Start loading the audio key
-   err := aFile.loadKey(trackId)
-   if err != nil {
-      return nil, err
+func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
+   return &audioFile{
+      chunkLock:     sync.RWMutex{},
+      chunks:        map[int]bool{},
+      chunksLoading: false,
+      decrypter:     newAudioFileDecrypter(),
+      fileId:        fileId,
+      aFormat:        format,
+      player:        player,
+      responseChan:  make(chan []byte),
+      // Set an initial size to fetch the first chunk regardless of the actual
+      // size
+      size: chunkSizeK,
    }
-   // Then start loading the audio itself
-   aFile.loadChunks()
-   return aFile, nil
 }
 
 type audioFile struct {
@@ -40,22 +44,6 @@ type audioFile struct {
    player         *player
    responseChan   chan []byte
    size           uint32
-}
-
-func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
-   return &audioFile{
-      chunkLock:     sync.RWMutex{},
-      chunks:        map[int]bool{},
-      chunksLoading: false,
-      decrypter:     newAudioFileDecrypter(),
-      fileId:        fileId,
-      aFormat:        format,
-      player:        player,
-      responseChan:  make(chan []byte),
-      // Set an initial size to fetch the first chunk regardless of the actual
-      // size
-      size: chunkSizeK,
-   }
 }
 
 func (a *audioFile) headerOffset() int {
@@ -104,45 +92,40 @@ func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
 }
 
 func encodeRequest(seq []byte, req request) ([]byte, error) {
-	buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
-	if err != nil {
-		return nil, err
-	}
-
-	header := &pb.Header{
-		Uri:    proto.String(req.Uri),
-		Method: proto.String(req.Method),
-	}
-
-	if req.ContentType != "" {
-		header.ContentType = proto.String(req.ContentType)
-	}
-
-	headerData, err := proto.Marshal(header)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, binary.BigEndian, uint16(len(headerData)))
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(headerData)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range req.Payload {
-		err = binary.Write(buf, binary.BigEndian, uint16(len(p)))
-		if err != nil {
-			return nil, err
-		}
-		_, err = buf.Write(p)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return buf.Bytes(), nil
+   buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
+   if err != nil {
+      return nil, err
+   }
+   header := &pb.Header{
+   Uri:    proto.String(req.Uri),
+   Method: proto.String(req.Method),
+   }
+   if req.ContentType != "" {
+      header.ContentType = proto.String(req.ContentType)
+   }
+   headerData, err := proto.Marshal(header)
+   if err != nil {
+      return nil, err
+   }
+   err = binary.Write(buf, binary.BigEndian, uint16(len(headerData)))
+   if err != nil {
+      return nil, err
+   }
+   _, err = buf.Write(headerData)
+   if err != nil {
+      return nil, err
+   }
+   for _, p := range req.Payload {
+      err = binary.Write(buf, binary.BigEndian, uint16(len(p)))
+      if err != nil {
+         return nil, err
+      }
+      _, err = buf.Write(p)
+      if err != nil {
+         return nil, err
+      }
+   }
+   return buf.Bytes(), nil
 }
 
 func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*response, error) {
@@ -205,20 +188,24 @@ func (ses *session) DownloadTrackID(id string) error {
    if err != nil {
       return err
    }
-   var selectedFile *pb.AudioFile = nil
+   var fSelect *pb.AudioFile = nil
    for _, file := range trk.GetFile() {
       if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-         selectedFile = file
+         fSelect = file
       }
    }
-   if selectedFile == nil {
+   if fSelect == nil {
       msg := "could not find any files of the song in the specified formats"
       return fmt.Errorf(msg)
    }
-   aFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
-   if err != nil {
+   trackID := trk.GetGid()
+   aFile := newAudioFileWithIdAndFormat(fSelect.FileId, fSelect.GetFormat(), ses.player)
+   // Start loading the audio key
+   if err := aFile.loadKey(trackID); err != nil {
       return err
    }
+   // Then start loading the audio itself
+   aFile.loadChunks()
    file, err := os.Create("file.ogg")
    if err != nil {
       return err
