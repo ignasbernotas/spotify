@@ -2,6 +2,7 @@ package spotify
 
 import (
    "bytes"
+   "encoding/hex"
    "fmt"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
@@ -9,21 +10,22 @@ import (
    "log"
    "math/big"
    "net"
+   "os"
    "time"
 )
 
 type session struct {
-   /// Constructor references
+   // Constructor references
    mercuryConstructor func(conn packetStream) *client
    shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
-   /// Managers and helpers
+   // Managers and helpers
    stream packetStream
    mercury *client
    player *player
    tcpCon io.ReadWriter
    // keys are the encryption keys used to communicate with the server
    keys privateKeys
-   /// State and variables
+   // State and variables
    deviceId string
    deviceName string
    // username is the currently authenticated canonical username
@@ -31,6 +33,40 @@ type session struct {
    reusableAuthBlob []byte
    country string
    discovery *blobInfo
+}
+
+func (ses *session) DownloadTrackID(id string) error {
+   b62 := new(big.Int)
+   b62.SetString(id, 62)
+   trk, err := ses.mercury.getTrack(hex.EncodeToString(b62.Bytes()))
+   if err != nil {
+      return err
+   }
+   var selectedFile *pb.AudioFile = nil
+   for _, file := range trk.GetFile() {
+      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
+         selectedFile = file
+      }
+   }
+   if selectedFile == nil {
+      msg := "could not find any files of the song in the specified formats"
+      return fmt.Errorf(msg)
+   }
+   audioFile, err := ses.player.loadTrack(selectedFile, trk.GetGid())
+   if err != nil {
+      return fmt.Errorf("failed to download the track %v", err)
+   }
+   track := getTrackInfo(trk)
+   fmt.Printf("%+v\n", track)
+   file, err := os.Create(track.TrackName + ".ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(audioFile); err != nil {
+      return err
+   }
+   return nil
 }
 
 func Login(username string, password string, deviceName string) (*session, error) {

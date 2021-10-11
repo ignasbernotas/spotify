@@ -16,8 +16,6 @@ import (
    cryptoRand "crypto/rand"
 )
 
-const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 func apResolve() (string, error) {
    req, err := http.NewRequest("GET", "http://apresolve.spotify.com", nil)
    if err != nil {
