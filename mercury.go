@@ -14,59 +14,49 @@ const chunkByteSizeK = chunkSizeK * 4
 const oggSkipBytesK = 167
 
 func encodeMercuryHead(seq []byte, partsLength uint16, flags uint8) (*bytes.Buffer, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, uint16(len(seq)))
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(seq)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, binary.BigEndian, uint8(flags))
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, binary.BigEndian, partsLength)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+   buf := new(bytes.Buffer)
+   err := binary.Write(buf, binary.BigEndian, uint16(len(seq)))
+   if err != nil {
+      return nil, err
+   }
+   if _, err := buf.Write(seq); err != nil {
+      return nil, err
+   }
+   if err := binary.Write(buf, binary.BigEndian, uint8(flags)); err != nil {
+      return nil, err
+   }
+   if err := binary.Write(buf, binary.BigEndian, partsLength); err != nil {
+      return nil, err
+   }
+   return buf, nil
 }
 
-func handleHead(reader io.Reader) (seq []byte, flags uint8, count uint16, err error) {
-	var seqLength uint16
-	err = binary.Read(reader, binary.BigEndian, &seqLength)
-	if err != nil {
-		return
-	}
-	seq = make([]byte, seqLength)
-	_, err = io.ReadFull(reader, seq)
-	if err != nil {
-		fmt.Println("read seq")
-		return
-	}
-
-	err = binary.Read(reader, binary.BigEndian, &flags)
-	if err != nil {
-		fmt.Println("read flags")
-		return
-	}
-	err = binary.Read(reader, binary.BigEndian, &count)
-	if err != nil {
-		fmt.Println("read count")
-		return
-	}
-
-	return
+func handleHead(reader io.Reader) ([]byte, uint8, uint16, error) {
+   var seqLength uint16
+   err := binary.Read(reader, binary.BigEndian, &seqLength)
+   if err != nil {
+      return nil, 0, 0, err
+   }
+   seq := make([]byte, seqLength)
+   if _, err := io.ReadFull(reader, seq); err != nil {
+      return nil, 0, 0, fmt.Errorf("read seq %v", err)
+   }
+   var flags uint8
+   if err := binary.Read(reader, binary.BigEndian, &flags); err != nil {
+      return nil, 0, 0, fmt.Errorf("read flags %v", err)
+   }
+   var count uint16
+   if err := binary.Read(reader, binary.BigEndian, &count); err != nil {
+      return nil, 0, 0, fmt.Errorf("read count %v", err)
+   }
+   return seq, flags, count, nil
 }
 
 func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+   if a < b {
+      return a
+   }
+   return b
 }
 
 func parsePart(reader io.Reader) ([]byte, error) {
@@ -83,10 +73,10 @@ func parsePart(reader io.Reader) ([]byte, error) {
 type callback func(response)
 
 type internal struct {
-	seqLock sync.Mutex
-	nextSequence uint32
-	Pending map[string]pending
-	Stream  packetStream
+   Pending map[string]pending
+   Stream  packetStream
+   nextSequence uint32
+   seqLock sync.Mutex
 }
 
 func (m *internal) nextSeq() (uint32, []byte) {
@@ -100,28 +90,25 @@ func (m *internal) nextSeq() (uint32, []byte) {
 }
 
 func (m *internal) request(req request) (seqKey string, err error) {
-	_, seq := m.nextSeq()
-	data, err := encodeRequest(seq, req)
-	if err != nil {
-		return "", err
-	}
-
-	var cmd uint8
-	switch {
-	case req.Method == "SUB":
-		cmd = 0xb3
-	case req.Method == "UNSUB":
-		cmd = 0xb4
-	default:
-		cmd = 0xb2
-	}
-
-	err = m.Stream.sendPacket(cmd, data)
-	if err != nil {
-		return "", err
-	}
-
-	return string(seq), nil
+   _, seq := m.nextSeq()
+   data, err := encodeRequest(seq, req)
+   if err != nil {
+      return "", err
+   }
+   var cmd uint8
+   switch {
+   case req.Method == "SUB":
+      cmd = 0xb3
+   case req.Method == "UNSUB":
+      cmd = 0xb4
+   default:
+      cmd = 0xb2
+   }
+   err = m.Stream.sendPacket(cmd, data)
+   if err != nil {
+      return "", err
+   }
+   return string(seq), nil
 }
 
 func (m *internal) parseResponse(cmd uint8, reader io.Reader) (*response, error) {
