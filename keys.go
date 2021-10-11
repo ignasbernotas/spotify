@@ -13,7 +13,6 @@ import (
    "math/big"
    "math/rand"
    "net/http"
-   "strings"
    cryptoRand "crypto/rand"
 )
 
@@ -44,22 +43,6 @@ func apResolve() (string, error) {
    } else {
       return "", errors.New("AP endpoint list is empty")
    }
-}
-
-func convert62(id string) []byte {
-   base := big.NewInt(62)
-   n := &big.Int{}
-   for _, c := range []byte(id) {
-      d := big.NewInt(int64(strings.IndexByte(alphabet, c)))
-      n = n.Mul(n, base)
-      n = n.Add(n, d)
-   }
-   nBytes := n.Bytes()
-   if len(nBytes) < 16 {
-      paddingBytes := make([]byte, 16-len(nBytes))
-      nBytes = append(paddingBytes, nBytes...)
-   }
-   return nBytes
 }
 
 func generateDeviceId(name string) string {
