@@ -73,3 +73,7 @@ convert to radix 16:
 ~~~
 eef38251727f46c28eed9284b288024e
 ~~~
+
+For the connection to work, we need ClientHello:
+
+https://github.com/librespot-org/librespot-java/blob/353c9db0/lib/src/main/java/xyz/gianlu/librespot/core/Session.java#L212

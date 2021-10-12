@@ -33,7 +33,11 @@ type session struct {
 
 func Login(username string, password string, deviceName string) (*session, error) {
    private := new(big.Int)
-   private.SetBytes(randomVec(95))
+   ran, err := randomVec(95)
+   if err != nil {
+      return nil, err
+   }
+   private.SetBytes(ran)
    DH_GENERATOR := big.NewInt(0x2)
    DH_PRIME := new(big.Int)
    // datatracker.ietf.org/doc/html/rfc2412#appendix-E.1
@@ -47,9 +51,13 @@ func Login(username string, password string, deviceName string) (*session, error
       0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6, 0xf4, 0x4c, 0x42, 0xe9,
       0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    })
+   non, err := randomVec(0x10)
+   if err != nil {
+      return nil, err
+   }
    ses := &session{
       keys: privateKeys{
-         clientNonce: randomVec(0x10),
+         clientNonce: non,
          generator:   DH_GENERATOR,
          prime:       DH_PRIME,
          privateKey: private,
@@ -58,8 +66,7 @@ func Login(username string, password string, deviceName string) (*session, error
       mercuryConstructor: createMercury,
       shannonConstructor: createStream,
    }
-   err := ses.doConnect()
-   if err != nil {
+   if err := ses.doConnect(); err != nil {
       return nil, err
    }
    if err := ses.loginSession(username, password, deviceName); err != nil {

@@ -32,9 +32,9 @@ func newResolve() (*resolve, error) {
    return sol, nil
 }
 
-func (r resolve) http() string {
+func (r resolve) https() string {
    for _, ap := range r.AccessPoint {
-      if strings.HasSuffix(ap, ":80") {
+      if strings.HasSuffix(ap, ":443") {
          return ap
       }
    }
@@ -42,7 +42,7 @@ func (r resolve) http() string {
 }
 
 func (r resolve) track(id string) error {
-   addr := "http://" + r.http() + "/metadata/4/track/" + id
+   addr := "https://" + r.https() + "/metadata/4/track/" + id
    fmt.Println("GET", addr)
    _, err := http.Get(addr)
    return err

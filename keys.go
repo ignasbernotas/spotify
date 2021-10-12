@@ -7,7 +7,6 @@ import (
    "encoding/json"
    "errors"
    "fmt"
-   "log"
    "math/big"
    "math/rand"
    "net/http"
@@ -66,14 +65,13 @@ func powm(base, exp, modulus *big.Int) *big.Int {
 	return result
 }
 
-func randomVec(count int) []byte {
-	c := count
-	b := make([]byte, c)
-	_, err := cryptoRand.Read(b)
-	if err != nil {
-		log.Fatal("error:", err)
-	}
-	return b
+func randomVec(count int) ([]byte, error) {
+   b := make([]byte, count)
+   _, err := cryptoRand.Read(b)
+   if err != nil {
+      return nil, err
+   }
+   return b, nil
 }
 
 type apList struct {

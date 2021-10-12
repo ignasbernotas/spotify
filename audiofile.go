@@ -7,7 +7,6 @@ import (
    "fmt"
    "github.com/golang/protobuf/proto"
    "io"
-   "log"
    "math"
    "sync"
 )
@@ -119,7 +118,6 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
    req := buildKeyRequest(seq, trackId, fileId)
    err := p.stream.sendPacket(packetRequestKey, req)
    if err != nil {
-   log.Println("Error while sending packet", err)
       return nil, err
    }
    channel, _ := p.seqChans.Load(seqInt)

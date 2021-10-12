@@ -13,6 +13,36 @@ import (
    "sync"
 )
 
+func makeHelloMessage(publicKey []byte, nonce []byte) ([]byte, error) {
+   hello := &pb.ClientHello{
+      BuildInfo: &pb.BuildInfo{
+         Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
+         // authentication failed: PremiumAccountRequired
+         // Product: pb.Product_PRODUCT_PARTNER.Enum(),
+         // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
+         Product: pb.Product_PRODUCT_CLIENT.Enum(),
+         ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
+         Version:      proto.Uint64(0x10800000000),
+      },
+      FingerprintsSupported: []pb.Fingerprint{},
+      CryptosuitesSupported: []pb.Cryptosuite{
+         pb.Cryptosuite_CRYPTO_SUITE_SHANNON,
+      },
+      LoginCryptoHello: &pb.LoginCryptoHelloUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
+            Gc:              publicKey,
+            ServerKeysKnown: proto.Uint32(1),
+         },
+      },
+      ClientNonce: nonce,
+      FeatureSet: &pb.FeatureSet{
+         Autoupdate2: proto.Bool(true),
+      },
+      Padding: []byte{0x1e},
+   }
+   return proto.Marshal(hello)
+}
+
 func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
    return &audioFile{
       chunkLock: sync.RWMutex{},
@@ -56,39 +86,6 @@ func (a *audioFile) headerOffset() int {
    return 0
 }
 
-func makeHelloMessage(publicKey []byte, nonce []byte) []byte {
-   hello := &pb.ClientHello{
-      BuildInfo: &pb.BuildInfo{
-         Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
-         // authentication failed: PremiumAccountRequired
-         // Product: pb.Product_PRODUCT_PARTNER.Enum(),
-         // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
-         Product: pb.Product_PRODUCT_CLIENT.Enum(),
-         ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
-         Version:      proto.Uint64(0x10800000000),
-      },
-      FingerprintsSupported: []pb.Fingerprint{},
-      CryptosuitesSupported: []pb.Cryptosuite{
-         pb.Cryptosuite_CRYPTO_SUITE_SHANNON,
-      },
-      LoginCryptoHello: &pb.LoginCryptoHelloUnion{
-         DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
-            Gc:              publicKey,
-            ServerKeysKnown: proto.Uint32(1),
-         },
-      },
-      ClientNonce: nonce,
-      FeatureSet: &pb.FeatureSet{
-         Autoupdate2: proto.Bool(true),
-      },
-      Padding: []byte{0x1e},
-   }
-   packetData, err := proto.Marshal(hello)
-   if err != nil {
-      log.Fatal("login marshaling error: ", err)
-   }
-   return packetData
-}
 
 func encodeRequest(seq []byte, req request) ([]byte, error) {
    buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
@@ -145,7 +142,7 @@ func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*
 
 }
 
-func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) []byte {
+func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
       LoginCredentials: &pb.LoginCredentials{
          Username: proto.String(username),
@@ -171,11 +168,7 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
          Limited:  proto.Bool(false),
       },
    }
-   packetData, err := proto.Marshal(packet)
-   if err != nil {
-      log.Fatal("login marshaling error: ", err)
-   }
-   return packetData
+   return proto.Marshal(packet)
 }
 
 func (ses *session) DownloadTrackID(id string) error {
@@ -183,7 +176,9 @@ func (ses *session) DownloadTrackID(id string) error {
    b62.SetString(id, 62)
    id = hex.EncodeToString(b62.Bytes())
    trk := new(pb.Track)
-   err := ses.mercury.mercuryGetProto("hm://metadata/4/track/" + id, trk)
+   addr := "hm://metadata/4/track/" + id
+   fmt.Println("GET", addr)
+   err := ses.mercury.mercuryGetProto(addr, trk)
    if err != nil {
       return err
    }
@@ -229,20 +224,26 @@ func (s *session) doReconnect() error {
    if err := s.startConnection(); err != nil {
       return err
    }
-   packet := makeLoginBlobPacket(
+   packet, err := makeLoginBlobPacket(
       s.username, s.reusableAuthBlob,
       pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(),
       s.deviceId,
    )
+   if err != nil {
+      return err
+   }
    return s.doLogin(packet, s.username)
 }
 
 func (s *session) startConnection() error {
    conn := makePlainConnection(s.tcpCon, s.tcpCon)
-   helloMessage := makeHelloMessage(
+   helloMessage, err := makeHelloMessage(
       s.keys.publicKey.Bytes(),
       s.keys.clientNonce,
    )
+   if err != nil {
+      return err
+   }
    initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
    if err != nil {
       log.Fatal("Error writing client hello", err)
@@ -296,10 +297,13 @@ func (s *session) loginSession(username string, password string, deviceName stri
    if err != nil {
       return err
    }
-   loginPacket := makeLoginBlobPacket(
+   loginPacket, err := makeLoginBlobPacket(
       username, []byte(password),
       pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), s.deviceId,
    )
+   if err != nil {
+      return err
+   }
    return s.doLogin(loginPacket, username)
 }
 
