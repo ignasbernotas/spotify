@@ -8,6 +8,21 @@ import (
    "sync"
 )
 
+type request struct {
+   contentType string
+   method      string
+   payload     [][]byte
+   uri         string
+}
+
+type response struct {
+   StatusCode int32
+   Uri        string
+   headerData []byte
+   payload    [][]byte
+   seqKey     string
+}
+
 const chunkByteSizeK = chunkSizeK * 4
 
 // Number of bytes to skip at the beginning of the file
@@ -97,9 +112,9 @@ func (m *internal) request(req request) (seqKey string, err error) {
    }
    var cmd uint8
    switch {
-   case req.Method == "SUB":
+   case req.method == "SUB":
       cmd = 0xb3
-   case req.Method == "UNSUB":
+   case req.method == "UNSUB":
       cmd = 0xb4
    default:
       cmd = 0xb2
@@ -151,24 +166,10 @@ type pending struct {
 	partial []byte
 }
 
-type request struct {
-	Method      string
-	Uri         string
-	ContentType string
-	Payload     [][]byte
-}
-
-type response struct {
-	HeaderData []byte
-	Uri        string
-	Payload    [][]byte
-	StatusCode int32
-	SeqKey     string
-}
 
 func (res *response) combinePayload() []byte {
 	body := make([]byte, 0)
-	for _, p := range res.Payload {
+	for _, p := range res.payload {
 		body = append(body, p...)
 	}
 	return body

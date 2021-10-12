@@ -76,37 +76,39 @@ func createMercury(stream packetStream) *client {
 }
 
 func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
-	resp, err := m.inter.parseResponse(cmd, reader)
-	if err != nil {
-		return
-	}
-	if resp != nil {
-		if cmd == 0xb5 {
-			chList, ok := m.subscriptions[resp.Uri]
-			if ok {
-				for _, ch := range chList {
-					ch <- *resp
-				}
-			}
-		} else {
-			m.cbMu.Lock()
-			cb, ok := m.callbacks[resp.SeqKey]
-			delete(m.callbacks, resp.SeqKey) // no-op if element does not exist
-			m.cbMu.Unlock()
-			if ok {
-				cb(*resp)
-			}
-		}
-	}
-	return
-
+   resp, err := m.inter.parseResponse(cmd, reader)
+   if err != nil {
+      return
+   }
+   if resp != nil {
+      if cmd == 0xb5 {
+         chList, ok := m.subscriptions[resp.Uri]
+         if ok {
+            for _, ch := range chList {
+               ch <- *resp
+            }
+         }
+      } else {
+         m.cbMu.Lock()
+         cb, ok := m.callbacks[resp.seqKey]
+         // no-op if element does not exist
+         delete(m.callbacks, resp.seqKey)
+         m.cbMu.Unlock()
+         if ok {
+            cb(*resp)
+         }
+      }
+   }
+   return
 }
 
 func (m *client) mercuryGet(url string) []byte {
    done := make(chan []byte)
    go m.request(
       request{
-         Method:  "GET", Payload: [][]byte{}, Uri: url,
+         uri: url,
+         method: "GET",
+         payload: [][]byte{},
       },
       func(res response) {
          done <- res.combinePayload()

@@ -10,31 +10,47 @@ import (
    "os"
 )
 
+func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*response, error) {
+   hData := pending.parts[0]
+   header := new(pb.Header)
+   err := proto.Unmarshal(hData, header)
+   if err != nil {
+      return nil, err
+   }
+   return &response{
+      StatusCode: header.GetStatusCode(),
+      Uri: *header.Uri,
+      headerData: hData,
+      payload: pending.parts[1:],
+      seqKey: seqKey,
+   }, nil
+}
+
 func encodeRequest(seq []byte, req request) ([]byte, error) {
-   buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
+   buf, err := encodeMercuryHead(seq, uint16(1+len(req.payload)), uint8(1))
    if err != nil {
       return nil, err
    }
    header := &pb.Header{
-   Uri:    proto.String(req.Uri),
-   Method: proto.String(req.Method),
+      Uri:    proto.String(req.uri),
+      Method: proto.String(req.method),
    }
-   if req.ContentType != "" {
-      header.ContentType = proto.String(req.ContentType)
+   if req.contentType != "" {
+      header.ContentType = proto.String(req.contentType)
    }
-   headerData, err := proto.Marshal(header)
+   hData, err := proto.Marshal(header)
    if err != nil {
       return nil, err
    }
-   err = binary.Write(buf, binary.BigEndian, uint16(len(headerData)))
+   err = binary.Write(buf, binary.BigEndian, uint16(len(hData)))
    if err != nil {
       return nil, err
    }
-   _, err = buf.Write(headerData)
+   _, err = buf.Write(hData)
    if err != nil {
       return nil, err
    }
-   for _, p := range req.Payload {
+   for _, p := range req.payload {
       err = binary.Write(buf, binary.BigEndian, uint16(len(p)))
       if err != nil {
          return nil, err
@@ -47,23 +63,6 @@ func encodeRequest(seq []byte, req request) ([]byte, error) {
    return buf.Bytes(), nil
 }
 
-func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*response, error) {
-	headerData := pending.parts[0]
-	header := &pb.Header{}
-	err := proto.Unmarshal(headerData, header)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response{
-		HeaderData: headerData,
-		Uri:        *header.Uri,
-		Payload:    pending.parts[1:],
-		StatusCode: header.GetStatusCode(),
-		SeqKey:     seqKey,
-	}, nil
-
-}
 
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
