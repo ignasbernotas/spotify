@@ -12,35 +12,30 @@ import (
 )
 
 type shannonStream struct {
-	sendNonce  uint32
-	SendCipher shn_ctx
-	RecvCipher shn_ctx
-
-	recvNonce uint32
-	Reader    io.Reader
-	Writer    io.Writer
-
-	Mutex *sync.Mutex
+   mutex *sync.Mutex
+   reader    io.Reader
+   recvCipher shn_ctx
+   recvNonce uint32
+   sendCipher shn_ctx
+   sendNonce  uint32
+   writer    io.Writer
 }
 
 func setKey(ctx *shn_ctx, key []uint8) {
 	shn_key(ctx, key, len(key))
-
 	nonce := make([]byte, 4)
 	binary.BigEndian.PutUint32(nonce, 0)
 	shn_nonce(ctx, nonce, len(nonce))
 }
 
-func (s *shannonStream) sendPacket(cmd uint8, data []byte) (err error) {
-	s.Mutex.Lock()
-	defer s.Mutex.Unlock()
-
-	_, err = s.Write(cipherPacket(cmd, data))
-	if err != nil {
-		return
-	}
-	err = s.finishSend()
-	return
+func (s *shannonStream) sendPacket(cmd uint8, data []byte) error {
+   s.mutex.Lock()
+   defer s.mutex.Unlock()
+   _, err := s.Write(cipherPacket(cmd, data))
+   if err != nil {
+      return err
+   }
+   return s.finishSend()
 }
 
 func cipherPacket(cmd uint8, data []byte) []byte {
@@ -52,17 +47,17 @@ func cipherPacket(cmd uint8, data []byte) []byte {
 }
 
 func (s *shannonStream) encryptBytes(messageBytes []byte) []byte {
-   shn_encrypt(&s.SendCipher, messageBytes, len(messageBytes))
+   shn_encrypt(&s.sendCipher, messageBytes, len(messageBytes))
    return messageBytes
 }
 
 func (s *shannonStream) decrypt(messageBytes []byte) []byte {
-	shn_decrypt(&s.RecvCipher, messageBytes, len(messageBytes))
+	shn_decrypt(&s.recvCipher, messageBytes, len(messageBytes))
 	return messageBytes
 }
 
 func (s *shannonStream) Read(p []byte) (int, error) {
-   n, err := s.Reader.Read(p)
+   n, err := s.reader.Read(p)
    if err != nil {
       return 0, err
    }
@@ -72,20 +67,20 @@ func (s *shannonStream) Read(p []byte) (int, error) {
 
 func (s *shannonStream) Write(p []byte) (int, error) {
    p = s.encryptBytes(p)
-   return s.Writer.Write(p)
+   return s.writer.Write(p)
 }
 
 func (s *shannonStream) finishSend() (err error) {
 	count := 4
 	mac := make([]byte, count)
-	shn_finish(&s.SendCipher, mac, count)
+	shn_finish(&s.sendCipher, mac, count)
 
 	s.sendNonce += 1
 	nonce := make([]uint8, 4)
 	binary.BigEndian.PutUint32(nonce, s.sendNonce)
-	shn_nonce(&s.SendCipher, nonce, len(nonce))
+	shn_nonce(&s.sendCipher, nonce, len(nonce))
 
-	_, err = s.Writer.Write(mac)
+	_, err = s.writer.Write(mac)
 	return
 }
 
@@ -93,10 +88,10 @@ func (s *shannonStream) finishRecv() {
 	count := 4
 
 	mac := make([]byte, count)
-	io.ReadFull(s.Reader, mac)
+	io.ReadFull(s.reader, mac)
 
 	mac2 := make([]byte, count)
-	shn_finish(&s.RecvCipher, mac2, count)
+	shn_finish(&s.recvCipher, mac2, count)
 
 	if !bytes.Equal(mac, mac2) {
 		log.Println("received mac doesn't match")
@@ -105,7 +100,7 @@ func (s *shannonStream) finishRecv() {
 	s.recvNonce += 1
 	nonce := make([]uint8, 4)
 	binary.BigEndian.PutUint32(nonce, s.recvNonce)
-	shn_nonce(&s.RecvCipher, nonce, len(nonce))
+	shn_nonce(&s.recvCipher, nonce, len(nonce))
 }
 
 func (s *shannonStream) recvPacket() (cmd uint8, buf []byte, err error) {
@@ -122,7 +117,7 @@ func (s *shannonStream) recvPacket() (cmd uint8, buf []byte, err error) {
 
 	if size > 0 {
 		buf = make([]byte, size)
-		_, err = io.ReadFull(s.Reader, buf)
+		_, err = io.ReadFull(s.reader, buf)
 		if err != nil {
 			return
 		}
@@ -135,13 +130,13 @@ func (s *shannonStream) recvPacket() (cmd uint8, buf []byte, err error) {
 }
 
 type shn_ctx struct {
-	R     [num]uint32
-	CRC   [num]uint32
-	initR [num]uint32
-	konst uint32
-	sbuf  uint32
-	mbuf  uint32
-	nbuf  int
+   R     [num]uint32
+   crc   [num]uint32
+   initR [num]uint32
+   konst uint32
+   mbuf  uint32
+   nbuf  int
+   sbuf  uint32
 }
 
 const (
@@ -206,19 +201,15 @@ func cycle(c *shn_ctx) {
 }
 
 func crcfunc(c *shn_ctx, i uint32) {
-	var t uint32
-	var j int
-
-	/* Accumulate CRC of input */
-	t = c.CRC[0] ^ c.CRC[2] ^ c.CRC[15] ^ i
-
-	for j = 1; j < num; j++ {
-		c.CRC[j-1] = c.CRC[j]
-	}
-	c.CRC[num-1] = t
+   var t uint32
+   var j int
+   t = c.crc[0] ^ c.crc[2] ^ c.crc[15] ^ i
+   for j = 1; j < num; j++ {
+      c.crc[j-1] = c.crc[j]
+   }
+   c.crc[num-1] = t
 }
 
-// Normal MAC word processing: do both stream register and CRC.
 func macfunc(c *shn_ctx, i uint32) {
 	crcfunc(c, i)
 	c.R[keyP] ^= i
@@ -273,8 +264,6 @@ func shn_diffuse(c *shn_ctx) {
    }
 }
 
-// Common actions for loading key material. Allow non-word-multiple key and
-// nonce material. Note also initializes the CRC register as a side effect.
 func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 	var i int
 	var j int
@@ -308,7 +297,7 @@ func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 
 	/* save a copy of the register */
 	for i = 0; i < num; i++ {
-		c.CRC[i] = c.R[i]
+		c.crc[i] = c.R[i]
 	}
 
 	/* now diffuse */
@@ -316,7 +305,7 @@ func shn_loadkey(c *shn_ctx, key []byte, keylen int) {
 
 	/* now xor the copy back -- makes key loading irreversible */
 	for i = 0; i < num; i++ {
-		c.R[i] ^= c.CRC[i]
+		c.R[i] ^= c.crc[i]
 	}
 }
 
@@ -451,15 +440,11 @@ func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
       /* LFSR already cycled */
       macfunc(c, c.mbuf)
    }
-   // perturb the MAC to mark end of input. Note that only the stream register
-   // is updated, not the CRC. This is an action that can't be duplicated by
-   // passing in plaintext, hence defeating any kind of extension attack.
    cycle(c)
    addkey(c, initkonst^(uint32(c.nbuf)<<3))
    c.nbuf = 0
-   /* now add the CRC to the stream register and diffuse it */
    for i = 0; i < num; i++ {
-      c.R[i] ^= c.CRC[i]
+      c.R[i] ^= c.crc[i]
    }
    shn_diffuse(c)
    /* produce output from the stream buffer */
@@ -479,14 +464,14 @@ func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
 }
 
 func createStream(keys sharedKeys, conn plainConnection) packetStream {
-	s := &shannonStream{
-		Reader: conn.Reader,
-		Writer: conn.Writer,
-		Mutex:  &sync.Mutex{},
-	}
-	setKey(&s.RecvCipher, keys.recvKey)
-	setKey(&s.SendCipher, keys.sendKey)
-	return s
+   s := &shannonStream{
+      mutex:  &sync.Mutex{},
+      reader: conn.Reader,
+      writer: conn.Writer,
+   }
+   setKey(&s.recvCipher, keys.recvKey)
+   setKey(&s.sendCipher, keys.sendKey)
+   return s
 }
 
 type session struct {

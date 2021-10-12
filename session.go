@@ -8,17 +8,6 @@ import (
    "net"
 )
 
-func (s *session) disconnect() {
-	if s.tcpCon != nil {
-		conn := s.tcpCon.(net.Conn)
-		err := conn.Close()
-		if err != nil {
-			log.Println("Failed to close tcp connection", err)
-		}
-		s.tcpCon = nil
-	}
-}
-
 func (s *session) doConnect() error {
    apUrl, err := apResolve()
    if err != nil {
