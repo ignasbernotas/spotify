@@ -6,26 +6,53 @@ import (
    "fmt"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
+   "io"
    "math/big"
    "os"
 )
 
-func (m *internal) completeRequest(cmd uint8, pending pending, seqKey string) (*response, error) {
-   hData := pending.parts[0]
-   header := new(pb.Header)
-   err := proto.Unmarshal(hData, header)
+func (m *internal) parseResponse(cmd uint8, reader io.Reader) (*response, error) {
+   seq, flags, count, err := handleHead(reader)
    if err != nil {
       return nil, err
    }
-   return &response{
-      StatusCode: header.GetStatusCode(),
-      Uri: *header.Uri,
-      headerData: hData,
-      payload: pending.parts[1:],
-      seqKey: seqKey,
-   }, nil
+   seqKey := string(seq)
+   pend := m.Pending[seqKey]
+   for i := uint16(0); i < count; i++ {
+      part, err := parsePart(reader)
+      if err != nil {
+         return nil, err
+      }
+      if pend.partial != nil {
+         part = append(pend.partial, part...)
+         pend.partial = nil
+      }
+      if i == count-1 && (flags == 2) {
+         pend.partial = part
+      } else {
+         pend.parts = append(pend.parts, part)
+      }
+   }
+   if flags == 1 {
+      delete(m.Pending, seqKey)
+      hData := pend.parts[0]
+      var head pb.Header
+      err := proto.Unmarshal(hData, &head)
+      if err != nil {
+         return nil, err
+      }
+      return &response{
+         headerData: hData,
+         payload: pend.parts[1:],
+         seqKey: seqKey,
+         statusCode: head.GetStatusCode(),
+         uri: *head.Uri,
+      }, nil
+   } else {
+      m.Pending[seqKey] = pend
+   }
+   return nil, nil
 }
-
 func encodeRequest(seq []byte, req request) ([]byte, error) {
    buf, err := encodeMercuryHead(seq, uint16(1+len(req.payload)), uint8(1))
    if err != nil {

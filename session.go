@@ -180,11 +180,6 @@ func randomVec(count int) ([]byte, error) {
    return b, nil
 }
 
-type apList struct {
-	ApListNoType []string `json:"ap_list"`
-	ApList       []string `json:"accesspoint"`
-}
-
 type blobInfo struct {
    Username    string
    DecodedBlob string

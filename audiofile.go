@@ -82,7 +82,7 @@ func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
    }
    if resp != nil {
       if cmd == 0xb5 {
-         chList, ok := m.subscriptions[resp.Uri]
+         chList, ok := m.subscriptions[resp.uri]
          if ok {
             for _, ch := range chList {
                ch <- *resp
@@ -123,7 +123,7 @@ func (m *client) request(req request, cb callback) (err error) {
    seq, err := m.inter.request(req)
    if err != nil {
       if cb != nil {
-         cb(response{StatusCode: 500})
+         cb(response{statusCode: 500})
       }
       return err
    }

@@ -16,11 +16,11 @@ type request struct {
 }
 
 type response struct {
-   StatusCode int32
-   Uri        string
    headerData []byte
    payload    [][]byte
    seqKey     string
+   statusCode int32
+   uri        string
 }
 
 const chunkByteSizeK = chunkSizeK * 4
@@ -126,46 +126,10 @@ func (m *internal) request(req request) (seqKey string, err error) {
    return string(seq), nil
 }
 
-func (m *internal) parseResponse(cmd uint8, reader io.Reader) (*response, error) {
-   seq, flags, count, err := handleHead(reader)
-   if err != nil {
-      return nil, err
-   }
-   seqKey := string(seq)
-   pend, ok := m.Pending[seqKey]
-   if !ok && cmd == 0xb5 {
-      pend = pending{}
-   }
-   for i := uint16(0); i < count; i++ {
-      part, err := parsePart(reader)
-      if err != nil {
-         fmt.Println("read part")
-         return nil, err
-      }
-      if pend.partial != nil {
-         part = append(pend.partial, part...)
-         pend.partial = nil
-      }
-      if i == count-1 && (flags == 2) {
-         pend.partial = part
-      } else {
-         pend.parts = append(pend.parts, part)
-      }
-   }
-   if flags == 1 {
-      delete(m.Pending, seqKey)
-      return m.completeRequest(cmd, pend, seqKey)
-   } else {
-      m.Pending[seqKey] = pend
-   }
-   return nil, nil
-}
-
 type pending struct {
 	parts   [][]byte
 	partial []byte
 }
-
 
 func (res *response) combinePayload() []byte {
 	body := make([]byte, 0)
