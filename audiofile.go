@@ -5,7 +5,6 @@ import (
    "crypto/aes"
    "encoding/binary"
    "fmt"
-   "github.com/golang/protobuf/proto"
    "io"
    "math"
    "sync"
@@ -73,10 +72,6 @@ func (m *client) mercuryGet(url string) []byte {
    return result
 }
 
-func (m *client) mercuryGetProto(url string, result proto.Message) error {
-   data := m.mercuryGet(url)
-   return proto.Unmarshal(data, result)
-}
 
 func (m *client) request(req request, cb callback) (err error) {
    seq, err := m.inter.request(req)
