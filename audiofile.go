@@ -3,12 +3,56 @@ package spotify
 import (
    "bytes"
    "crypto/aes"
+   "crypto/cipher"
    "encoding/binary"
    "fmt"
    "io"
    "math"
    "sync"
 )
+
+func newAudioFileWithIdAndFormat(fileId []byte, format int, player *player) *audioFile {
+   return &audioFile{
+      chunkLock: sync.RWMutex{},
+      chunks: map[int]bool{},
+      decrypter: newAudioFileDecrypter(),
+      fileId: fileId,
+      aFormat: format,
+      player: player,
+      responseChan: make(chan []byte),
+      // Set an initial size to fetch the first chunk regardless of the actual
+      // size
+      size: chunkSizeK,
+   }
+}
+
+type audioFile struct {
+   aFormat int
+   chunkLoadOrder []int
+   chunkLock      sync.RWMutex
+   chunks         map[int]bool
+   chunksLoading  bool
+   cipher         cipher.Block
+   cursor         int
+   data           []byte
+   decrypter      *audioFileDecrypter
+   fileId         []byte
+   lock           sync.RWMutex
+   player         *player
+   responseChan   chan []byte
+   size           uint32
+}
+
+func (a *audioFile) headerOffset() int {
+   switch a.aFormat {
+   case
+   AudioFile_OGG_VORBIS_160,
+   AudioFile_OGG_VORBIS_320,
+   AudioFile_OGG_VORBIS_96:
+      return oggSkipBytesK
+   }
+   return 0
+}
 
 const chunkSizeK = 32768
 

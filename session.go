@@ -9,6 +9,12 @@ import (
    "net"
 )
 
+const (
+   AudioFile_OGG_VORBIS_96   = 0
+   AudioFile_OGG_VORBIS_160  = 1
+   AudioFile_OGG_VORBIS_320  = 2
+)
+
 func (s *session) doConnect() error {
    con, err := net.Dial("tcp", "ap.spotify.com:80")
    if err != nil {

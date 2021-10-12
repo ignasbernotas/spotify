@@ -1,7 +1,6 @@
 package spotify
 
 import (
-   "crypto/cipher"
    "encoding/binary"
    "encoding/hex"
    "fmt"
@@ -9,57 +8,7 @@ import (
    "github.com/golang/protobuf/proto"
    "math/big"
    "os"
-   "sync"
 )
-
-func (m *client) mercuryGetProto(url string, result proto.Message) error {
-   data := m.mercuryGet(url)
-   return proto.Unmarshal(data, result)
-}
-
-func newAudioFileWithIdAndFormat(fileId []byte, format pb.AudioFile_Format, player *player) *audioFile {
-   return &audioFile{
-      chunkLock: sync.RWMutex{},
-      chunks: map[int]bool{},
-      decrypter: newAudioFileDecrypter(),
-      fileId: fileId,
-      aFormat: format,
-      player: player,
-      responseChan: make(chan []byte),
-      // Set an initial size to fetch the first chunk regardless of the actual
-      // size
-      size: chunkSizeK,
-   }
-}
-
-type audioFile struct {
-   aFormat         pb.AudioFile_Format
-   chunkLoadOrder []int
-   chunkLock      sync.RWMutex
-   chunks         map[int]bool
-   chunksLoading  bool
-   cipher         cipher.Block
-   cursor         int
-   data           []byte
-   decrypter      *audioFileDecrypter
-   fileId         []byte
-   lock           sync.RWMutex
-   player         *player
-   responseChan   chan []byte
-   size           uint32
-}
-
-func (a *audioFile) headerOffset() int {
-   switch a.aFormat {
-   case
-   pb.AudioFile_OGG_VORBIS_160,
-   pb.AudioFile_OGG_VORBIS_320,
-   pb.AudioFile_OGG_VORBIS_96:
-      return oggSkipBytesK
-   }
-   return 0
-}
-
 
 func encodeRequest(seq []byte, req request) ([]byte, error) {
    buf, err := encodeMercuryHead(seq, uint16(1+len(req.Payload)), uint8(1))
@@ -145,31 +94,36 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
    return proto.Marshal(packet)
 }
 
+func getFormat(track pb.Track) (*pb.AudioFile, error) {
+   for _, file := range track.GetFile() {
+      if file.GetFormat() == AudioFile_OGG_VORBIS_160 {
+         return file, nil
+      }
+   }
+   msg := "could not find any files of the song in the specified formats"
+   return nil, fmt.Errorf(msg)
+}
+
 func (ses *session) DownloadTrackID(id string) error {
    b62 := new(big.Int)
    b62.SetString(id, 62)
    id = hex.EncodeToString(b62.Bytes())
-   trk := new(pb.Track)
    addr := "hm://metadata/4/track/" + id
    fmt.Println("GET", addr)
-   err := ses.mercury.mercuryGetProto(addr, trk)
+   data := ses.mercury.mercuryGet(addr)
+   var trk pb.Track
+   err := proto.Unmarshal(data, &trk)
    if err != nil {
       return err
    }
-   var fSelect *pb.AudioFile = nil
-   for _, file := range trk.GetFile() {
-      if file.GetFormat() == pb.AudioFile_OGG_VORBIS_160 {
-         fSelect = file
-      }
-   }
-   if fSelect == nil {
-      msg := "could not find any files of the song in the specified formats"
-      return fmt.Errorf(msg)
+   fSelect, err := getFormat(trk)
+   if err != nil {
+      return err
    }
    trackID := trk.GetGid()
    aFile := newAudioFileWithIdAndFormat(
       fSelect.FileId,
-      pb.AudioFile_OGG_VORBIS_160,
+      AudioFile_OGG_VORBIS_160,
       ses.player,
    )
    // Start loading the audio key
