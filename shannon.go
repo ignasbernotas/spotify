@@ -2,7 +2,10 @@ package spotify
 
 import (
    "bytes"
+   "math/big"
    "encoding/binary"
+   "github.com/89z/spotify/pb"
+   "github.com/golang/protobuf/proto"
    "io"
    "log"
    "sync"
@@ -473,4 +476,166 @@ func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
          break
       }
    }
+}
+
+func createStream(keys sharedKeys, conn plainConnection) packetStream {
+	s := &shannonStream{
+		Reader: conn.Reader,
+		Writer: conn.Writer,
+		Mutex:  &sync.Mutex{},
+	}
+	setKey(&s.RecvCipher, keys.recvKey)
+	setKey(&s.SendCipher, keys.sendKey)
+	return s
+}
+
+type session struct {
+   // Constructor references
+   mercuryConstructor func(conn packetStream) *client
+   shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
+   // Managers and helpers
+   stream packetStream
+   mercury *client
+   player *player
+   tcpCon io.ReadWriter
+   // keys are the encryption keys used to communicate with the server
+   keys privateKeys
+   // State and variables
+   deviceId string
+   deviceName string
+   // username is the currently authenticated canonical username
+   username string
+   reusableAuthBlob []byte
+   country string
+   discovery *blobInfo
+}
+
+func Login(username string, password string, deviceName string) (*session, error) {
+   private := new(big.Int)
+   ran, err := randomVec(95)
+   if err != nil {
+      return nil, err
+   }
+   private.SetBytes(ran)
+   DH_GENERATOR := big.NewInt(0x2)
+   DH_PRIME := new(big.Int)
+   // datatracker.ietf.org/doc/html/rfc2412#appendix-E.1
+   DH_PRIME.SetBytes([]byte{
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9, 0x0f, 0xda, 0xa2,
+      0x21, 0x68, 0xc2, 0x34, 0xc4, 0xc6, 0x62, 0x8b, 0x80, 0xdc, 0x1c, 0xd1,
+      0x29, 0x02, 0x4e, 0x08, 0x8a, 0x67, 0xcc, 0x74, 0x02, 0x0b, 0xbe, 0xa6,
+      0x3b, 0x13, 0x9b, 0x22, 0x51, 0x4a, 0x08, 0x79, 0x8e, 0x34, 0x04, 0xdd,
+      0xef, 0x95, 0x19, 0xb3, 0xcd, 0x3a, 0x43, 0x1b, 0x30, 0x2b, 0x0a, 0x6d,
+      0xf2, 0x5f, 0x14, 0x37, 0x4f, 0xe1, 0x35, 0x6d, 0x6d, 0x51, 0xc2, 0x45,
+      0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6, 0xf4, 0x4c, 0x42, 0xe9,
+      0xa6, 0x3a, 0x36, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   })
+   non, err := randomVec(0x10)
+   if err != nil {
+      return nil, err
+   }
+   ses := &session{
+      keys: privateKeys{
+         clientNonce: non,
+         generator:   DH_GENERATOR,
+         prime:       DH_PRIME,
+         privateKey: private,
+         publicKey:  powm(DH_GENERATOR, private, DH_PRIME),
+      },
+      mercuryConstructor: createMercury,
+      shannonConstructor: createStream,
+   }
+   if err := ses.doConnect(); err != nil {
+      return nil, err
+   }
+   if err := ses.loginSession(username, password, deviceName); err != nil {
+      return nil, err
+   }
+   return ses, nil
+}
+
+func makeHelloMessage(publicKey []byte, nonce []byte) ([]byte, error) {
+   hello := &pb.ClientHello{
+      BuildInfo: &pb.BuildInfo{
+         Platform:     pb.Platform_PLATFORM_LINUX_X86_64.Enum(),
+         // authentication failed: PremiumAccountRequired
+         // Product: pb.Product_PRODUCT_PARTNER.Enum(),
+         // CHANGE THIS TO MAKE LIBRESPOT WORK WITH FREE ACCOUNTS
+         Product: pb.Product_PRODUCT_CLIENT.Enum(),
+         ProductFlags: []pb.ProductFlags{pb.ProductFlags_PRODUCT_FLAG_NONE},
+         Version:      proto.Uint64(0x10800000000),
+      },
+      FingerprintsSupported: []pb.Fingerprint{},
+      CryptosuitesSupported: []pb.Cryptosuite{
+         pb.Cryptosuite_CRYPTO_SUITE_SHANNON,
+      },
+      LoginCryptoHello: &pb.LoginCryptoHelloUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanHello{
+            Gc:              publicKey,
+            ServerKeysKnown: proto.Uint32(1),
+         },
+      },
+      ClientNonce: nonce,
+      FeatureSet: &pb.FeatureSet{
+         Autoupdate2: proto.Bool(true),
+      },
+      Padding: []byte{0x1e},
+   }
+   return proto.Marshal(hello)
+}
+
+
+func (s *session) startConnection() error {
+   conn := makePlainConnection(s.tcpCon, s.tcpCon)
+   helloMessage, err := makeHelloMessage(
+      s.keys.publicKey.Bytes(),
+      s.keys.clientNonce,
+   )
+   if err != nil {
+      return err
+   }
+   initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
+   if err != nil {
+      log.Fatal("Error writing client hello", err)
+      return err
+   }
+   // Wait and read the hello reply
+   initServerPacket, err := conn.recvPacket()
+   if err != nil {
+      log.Fatal("Error receving packet for hello: ", err)
+      return err
+   }
+   response := pb.APResponseMessage{}
+   err = proto.Unmarshal(initServerPacket[4:], &response)
+   if err != nil {
+      log.Fatal("Failed to unmarshal server hello", err)
+      return err
+   }
+   remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
+   sharedKeys := s.keys.addRemoteKey(
+      remoteKey, initClientPacket, initServerPacket,
+   )
+   plainResponse := &pb.ClientResponsePlaintext{
+      CryptoResponse: &pb.CryptoResponseUnion{},
+      LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
+            Hmac: sharedKeys.challenge,
+         },
+      },
+      PowResponse:    &pb.PoWResponseUnion{},
+   }
+   plainResponseMessage, err := proto.Marshal(plainResponse)
+   if err != nil {
+   log.Fatal("marshaling error: ", err)
+   return err
+   }
+   _, err = conn.sendPrefixPacket([]byte{}, plainResponseMessage)
+   if err != nil {
+   log.Fatal("error writing client plain response ", err)
+   return err
+   }
+   s.stream = s.shannonConstructor(sharedKeys, conn)
+   s.mercury = s.mercuryConstructor(s.stream)
+   s.player = createPlayer(s.stream, s.mercury)
+   return nil
 }

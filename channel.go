@@ -175,17 +175,6 @@ type packetStream interface {
    sendPacket(cmd uint8, data []byte) error
 }
 
-func createStream(keys sharedKeys, conn plainConnection) packetStream {
-	s := &shannonStream{
-		Reader: conn.Reader,
-		Writer: conn.Writer,
-		Mutex:  &sync.Mutex{},
-	}
-	setKey(&s.RecvCipher, keys.recvKey)
-	setKey(&s.SendCipher, keys.sendKey)
-	return s
-}
-
 type plainConnection struct {
 	Writer io.Writer
 	Reader io.Reader
