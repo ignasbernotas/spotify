@@ -7,7 +7,6 @@ import (
    "log"
    "math/big"
    "net"
-   "time"
 )
 
 type session struct {
@@ -137,24 +136,12 @@ func (s *session) handle(cmd uint8, data []byte) {
    }
 }
 
-func (s *session) planReconnect() {
-   go func() {
-      time.Sleep(1 * time.Second)
-      if err := s.doReconnect(); err != nil {
-         // Try to reconnect again in a second
-         s.planReconnect()
-      }
-   }()
-}
-
 func (s *session) runPollLoop() {
    for {
       cmd, data, err := s.stream.recvPacket()
       if err != nil {
          log.Println("Error during RecvPacket: ", err)
          if err == io.EOF {
-            // We've been disconnected, reconnect
-            s.planReconnect()
             break
          }
       } else {

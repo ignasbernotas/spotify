@@ -215,26 +215,6 @@ func (ses *session) DownloadTrackID(id string) error {
    return nil
 }
 
-func (s *session) doReconnect() error {
-   s.disconnect()
-   err := s.doConnect()
-   if err != nil {
-      return err
-   }
-   if err := s.startConnection(); err != nil {
-      return err
-   }
-   packet, err := makeLoginBlobPacket(
-      s.username, s.reusableAuthBlob,
-      pb.AuthenticationType_AUTHENTICATION_STORED_SPOTIFY_CREDENTIALS.Enum(),
-      s.deviceId,
-   )
-   if err != nil {
-      return err
-   }
-   return s.doLogin(packet, s.username)
-}
-
 func (s *session) startConnection() error {
    conn := makePlainConnection(s.tcpCon, s.tcpCon)
    helloMessage, err := makeHelloMessage(

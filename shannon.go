@@ -442,42 +442,35 @@ func shn_decrypt(c *shn_ctx, buf []byte, nbytes int) {
 // unprocessed bytes are treated as if they were encrypted zero bytes, so
 // plaintext (zero) is accumulated.
 func shn_finish(c *shn_ctx, buf []byte, nbytes int) {
-	var i int
-
-	/* Handle any previously buffered bytes */
-	if c.nbuf != 0 {
-		/* LFSR already cycled */
-		macfunc(c, c.mbuf)
-	}
-
-	/* perturb the MAC to mark end of input.
-	 * Note that only the stream register is updated, not the CRC. This is an
-	 * action that can't be duplicated by passing in plaintext, hence
-	 * defeating any kind of extension attack.
-	 */
-	cycle(c)
-
-	addkey(c, initkonst^(uint32(c.nbuf)<<3))
-	c.nbuf = 0
-
-	/* now add the CRC to the stream register and diffuse it */
-	for i = 0; i < num; i++ {
-		c.R[i] ^= c.CRC[i]
-	}
-	shn_diffuse(c)
-
-	/* produce output from the stream buffer */
-	for nbytes > 0 {
-		cycle(c)
-		if nbytes >= 4 {
-			word2byte(c.sbuf, buf)
-			nbytes -= 4
-			buf = buf[4:]
-		} else {
-			for i = 0; i < nbytes; i++ {
-				buf[i] = byte(toByte(c.sbuf, i))
-			}
-			break
-		}
-	}
+   var i int
+   /* Handle any previously buffered bytes */
+   if c.nbuf != 0 {
+      /* LFSR already cycled */
+      macfunc(c, c.mbuf)
+   }
+   // perturb the MAC to mark end of input. Note that only the stream register
+   // is updated, not the CRC. This is an action that can't be duplicated by
+   // passing in plaintext, hence defeating any kind of extension attack.
+   cycle(c)
+   addkey(c, initkonst^(uint32(c.nbuf)<<3))
+   c.nbuf = 0
+   /* now add the CRC to the stream register and diffuse it */
+   for i = 0; i < num; i++ {
+      c.R[i] ^= c.CRC[i]
+   }
+   shn_diffuse(c)
+   /* produce output from the stream buffer */
+   for nbytes > 0 {
+      cycle(c)
+      if nbytes >= 4 {
+         word2byte(c.sbuf, buf)
+         nbytes -= 4
+         buf = buf[4:]
+      } else {
+         for i = 0; i < nbytes; i++ {
+            buf[i] = byte(toByte(c.sbuf, i))
+         }
+         break
+      }
+   }
 }

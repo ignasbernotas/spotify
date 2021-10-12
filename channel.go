@@ -193,11 +193,11 @@ type plainConnection struct {
 }
 
 func makePlainConnection(reader io.Reader, writer io.Writer) plainConnection {
-	return plainConnection{
-		Reader: reader,
-		Writer: writer,
-		mutex:  &sync.Mutex{},
-	}
+   return plainConnection{
+      Reader: reader,
+      Writer: writer,
+      mutex:  &sync.Mutex{},
+   }
 }
 
 func (p *plainConnection) sendPrefixPacket(prefix []byte, data []byte) ([]byte, error) {
