@@ -60,8 +60,8 @@ func encodeRequest(seq []byte, req request) ([]byte, error) {
       return nil, err
    }
    header := &pb.Header{
-      Uri:    proto.String(req.uri),
       Method: proto.String(req.method),
+      Uri:    proto.String(req.uri),
    }
    if req.contentType != "" {
       header.ContentType = proto.String(req.contentType)
