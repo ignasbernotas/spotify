@@ -36,3 +36,40 @@ then `baseUrl` looks like this:
 ~~~java
 this.baseUrl = "https://" + ApResolver.getRandomSpclient();
 ~~~
+
+So first, we need to get random client:
+
+~~~
+GET /?type=accesspoint HTTP/1.1
+Host: apresolve.spotify.com
+~~~
+
+Result:
+
+~~~json
+{
+  "accesspoint": [
+    "guc3-accesspoint-a-351z.ap.spotify.com:4070",
+    "guc3-accesspoint-a-zrnq.ap.spotify.com:443",
+    "guc3-accesspoint-a-g2wl.ap.spotify.com:80",
+    "guc3-accesspoint-a-j2k6.ap.spotify.com:4070",
+    "guc3-accesspoint-a-bg8f.ap.spotify.com:443",
+    "guc3-accesspoint-a-h4q0.ap.spotify.com:80",
+    "gew1-accesspoint-a-grhm.ap.spotify.com:4070",
+    "gew1-accesspoint-a-2gzw.ap.spotify.com:443",
+    "gae2-accesspoint-a-279c.ap.spotify.com:80"
+  ]
+}
+~~~
+
+Then take radix 62 track ID:
+
+~~~
+7gTsnFUJMoBIMIzFRUi8to
+~~~
+
+convert to radix 16:
+
+~~~
+eef38251727f46c28eed9284b288024e
+~~~
