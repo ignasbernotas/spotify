@@ -11,14 +11,9 @@ import (
 func (s *session) doConnect() error {
    apUrl, err := apResolve()
    if err != nil {
-   log.Println("Failed to get ap url", err)
-   return err
+      return err
    }
    s.tcpCon, err = net.Dial("tcp", apUrl)
-   if err != nil {
-   log.Println("Failed to connect:", err)
-   return err
-   }
    return err
 }
 
