@@ -1,8 +1,16 @@
-type Header struct {
-   ContentType      *string      `protobuf:"bytes,2,opt,name=content_type,json=contentType" json:"content_type,omitempty"`
-   Method           *string      `protobuf:"bytes,3,opt,name=method" json:"method,omitempty"`
-   StatusCode       *int32       `protobuf:"zigzag32,4,opt,name=status_code,json=statusCode" json:"status_code,omitempty"`
-   Uri              *string      `protobuf:"bytes,1,opt,name=uri" json:"uri,omitempty"`
-   UserFields       []*UserField `protobuf:"bytes,6,rep,name=user_fields,json=userFields" json:"user_fields,omitempty"`
-   XXX_unrecognized []byte       `json:"-"`
+package main
+
+import (
+   "encoding/json"
+   "github.com/89z/parse/protobuf"
+   "os"
+)
+
+var data = []byte("\n6hm://metadata/4/track/eef38251727f46c28eed9284b288024e\x12\x1avnd.spotify/metadata-track \x90\x032\x13\n\x04Vary\x12\v_ui.country2\x18\n\nMD-Version\x12\n16339896062\x0f\n\x06MC-TTL\x12\x05831502\x19\n\x0fMC-Cache-Policy\x12\x06public2\x0f\n\aMC-ETag\x12\x04V-G\x1e")
+
+func main() {
+   fields := protobuf.Parse(data)
+   enc := json.NewEncoder(os.Stdout)
+   enc.SetIndent("", " ")
+   enc.Encode(fields)
 }

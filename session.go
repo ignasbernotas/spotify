@@ -124,28 +124,6 @@ func (s *session) runPollLoop() {
    }
 }
 
-func (s *session) doLogin(packet []byte, username string) error {
-   err := s.stream.sendPacket(packetLogin, packet)
-   if err != nil {
-      return err
-   }
-   // Pll once for authentication response
-   welcome, err := s.handleLogin()
-   if err != nil {
-   return err
-   }
-   // Store the few interesting values
-   s.username = welcome.GetCanonicalUsername()
-   if s.username == "" {
-      s.username = s.discovery.Username
-   }
-   s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
-   // Poll for acknowledge before loading - needed for gopherjs
-   go s.runPollLoop()
-   return nil
-}
-
-
 func generateDeviceId(name string) string {
    hash := sha1.Sum([]byte(name))
    return base64.StdEncoding.EncodeToString(hash[:])

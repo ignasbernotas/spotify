@@ -37,6 +37,7 @@ func (m *internal) parseResponse(cmd uint8, reader io.Reader) (*response, error)
       delete(m.Pending, seqKey)
       hData := pend.parts[0]
       var head pb.Header
+      fmt.Printf("%q\n", hData)
       err := proto.Unmarshal(hData, &head)
       if err != nil {
          return nil, err
@@ -89,7 +90,6 @@ func encodeRequest(seq []byte, req request) ([]byte, error) {
    }
    return buf.Bytes(), nil
 }
-
 
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
@@ -177,8 +177,10 @@ func (s *session) loginSession(username string, password string, deviceName stri
       return err
    }
    loginPacket, err := makeLoginBlobPacket(
-      username, []byte(password),
-      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(), s.deviceId,
+      username,
+      []byte(password),
+      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(),
+      s.deviceId,
    )
    if err != nil {
       return err
@@ -186,28 +188,41 @@ func (s *session) loginSession(username string, password string, deviceName stri
    return s.doLogin(loginPacket, username)
 }
 
-func (s *session) handleLogin() (*pb.APWelcome, error) {
+func (s *session) doLogin(packet []byte, username string) error {
+   err := s.stream.sendPacket(packetLogin, packet)
+   if err != nil {
+      return err
+   }
+   // Pll once for authentication response
    cmd, data, err := s.stream.recvPacket()
    if err != nil {
-      return nil, fmt.Errorf("authentication failed: %v", err)
+      return err
    }
-   if cmd == packetAuthFailure {
+   switch cmd {
+   case packetAuthFailure:
       failure := &pb.APLoginFailed{}
       err := proto.Unmarshal(data, failure)
       if err != nil {
-         return nil, fmt.Errorf("authenticated failed: %v", err)
+         return err
       }
-      return nil, fmt.Errorf("authentication failed: %s", failure.ErrorCode)
-   } else if cmd == packetAPWelcome {
-      welcome := &pb.APWelcome{}
+      return fmt.Errorf("errorCode %v", failure.ErrorCode)
+   case packetAPWelcome:
+      welcome := new(pb.APWelcome)
       err := proto.Unmarshal(data, welcome)
       if err != nil {
-         return nil, fmt.Errorf("authentication failed: %v", err)
+         return fmt.Errorf("authentication failed: %v", err)
       }
-      return welcome, nil
-   } else {
-      return nil, fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
+      // Store the few interesting values
+      s.username = welcome.GetCanonicalUsername()
+      if s.username == "" {
+         s.username = s.discovery.Username
+      }
+      s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
+      // Poll for acknowledge before loading - needed for gopherjs
+      go s.runPollLoop()
+      return nil
    }
+   return fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
 }
 
 func makeHelloMessage(publicKey []byte, nonce []byte) ([]byte, error) {
