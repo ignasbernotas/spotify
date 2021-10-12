@@ -4,41 +4,9 @@ import (
    "crypto/hmac"
    "crypto/sha1"
    "encoding/base64"
-   "encoding/json"
-   "errors"
-   "fmt"
    "math/big"
-   "math/rand"
-   "net/http"
    cryptoRand "crypto/rand"
 )
-
-func apResolve() (string, error) {
-   req, err := http.NewRequest("GET", "http://apresolve.spotify.com", nil)
-   if err != nil {
-      return "", err
-   }
-   val := req.URL.Query()
-   val.Set("type", "accesspoint")
-   req.URL.RawQuery = val.Encode()
-   fmt.Println(req.Method, req.URL)
-   res, err := new(http.Client).Do(req)
-   if err != nil {
-      return "", err
-   }
-   defer res.Body.Close()
-   var endpoints apList
-   if err := json.NewDecoder(res.Body).Decode(&endpoints); err != nil {
-      return "", err
-   }
-   if len(endpoints.ApList) > 0 {
-      return endpoints.ApList[rand.Intn(len(endpoints.ApList))], nil
-   } else if len(endpoints.ApListNoType) > 0 {
-      return endpoints.ApListNoType[rand.Intn(len(endpoints.ApListNoType))], nil
-   } else {
-      return "", errors.New("AP endpoint list is empty")
-   }
-}
 
 func generateDeviceId(name string) string {
    hash := sha1.Sum([]byte(name))

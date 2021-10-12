@@ -1,4 +1,4 @@
-# October 11 2021
+# October 12 2021
 
 This is interesting:
 
@@ -77,3 +77,9 @@ eef38251727f46c28eed9284b288024e
 For the connection to work, we need ClientHello:
 
 https://github.com/librespot-org/librespot-java/blob/353c9db0/lib/src/main/java/xyz/gianlu/librespot/core/Session.java#L212
+
+This site says `apresolve.spotify.com` isnt used any more:
+
+https://github.com/ahixon/spotify-mitm-proxy#ap-resolve-server
+
+and that `ap.spotify.com` is used.

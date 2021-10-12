@@ -210,22 +210,24 @@ func (x *Fingerprint) UnmarshalJSON(data []byte) error {
 	*x = Fingerprint(value)
 	return nil
 }
+
 func (Fingerprint) EnumDescriptor() ([]byte, []int) { return fileDescriptor4, []int{3} }
 
 type Cryptosuite int32
 
 const (
-	Cryptosuite_CRYPTO_SUITE_SHANNON       Cryptosuite = 0
-	Cryptosuite_CRYPTO_SUITE_RC4_SHA1_HMAC Cryptosuite = 1
+   Cryptosuite_CRYPTO_SUITE_SHANNON       Cryptosuite = 0
+   Cryptosuite_CRYPTO_SUITE_RC4_SHA1_HMAC Cryptosuite = 1
 )
 
 var Cryptosuite_name = map[int32]string{
-	0: "CRYPTO_SUITE_SHANNON",
-	1: "CRYPTO_SUITE_RC4_SHA1_HMAC",
+   0: "CRYPTO_SUITE_SHANNON",
+   1: "CRYPTO_SUITE_RC4_SHA1_HMAC",
 }
+
 var Cryptosuite_value = map[string]int32{
-	"CRYPTO_SUITE_SHANNON":       0,
-	"CRYPTO_SUITE_RC4_SHA1_HMAC": 1,
+   "CRYPTO_SUITE_SHANNON":       0,
+   "CRYPTO_SUITE_RC4_SHA1_HMAC": 1,
 }
 
 func (x Cryptosuite) Enum() *Cryptosuite {
@@ -233,6 +235,7 @@ func (x Cryptosuite) Enum() *Cryptosuite {
 	*p = x
 	return p
 }
+
 func (x Cryptosuite) String() string {
 	return proto.EnumName(Cryptosuite_name, int32(x))
 }
