@@ -15,41 +15,12 @@ type Header struct {
 func (m *Header) Reset()                    { *m = Header{} }
 func (m *Header) String() string            { return proto.CompactTextString(m) }
 func (*Header) ProtoMessage()               {}
-func (*Header) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
-
-func (m *Header) GetUri() string {
-	if m != nil && m.Uri != nil {
-		return *m.Uri
-	}
-	return ""
-}
-
-func (m *Header) GetContentType() string {
-	if m != nil && m.ContentType != nil {
-		return *m.ContentType
-	}
-	return ""
-}
-
-func (m *Header) GetMethod() string {
-	if m != nil && m.Method != nil {
-		return *m.Method
-	}
-	return ""
-}
 
 func (m *Header) GetStatusCode() int32 {
 	if m != nil && m.StatusCode != nil {
 		return *m.StatusCode
 	}
 	return 0
-}
-
-func (m *Header) GetUserFields() []*UserField {
-	if m != nil {
-		return m.UserFields
-	}
-	return nil
 }
 
 type UserField struct {
@@ -61,18 +32,3 @@ type UserField struct {
 func (m *UserField) Reset()                    { *m = UserField{} }
 func (m *UserField) String() string            { return proto.CompactTextString(m) }
 func (*UserField) ProtoMessage()               {}
-func (*UserField) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
-
-func (m *UserField) GetKey() string {
-	if m != nil && m.Key != nil {
-		return *m.Key
-	}
-	return ""
-}
-
-func (m *UserField) GetValue() []byte {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
