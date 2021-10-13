@@ -2,24 +2,18 @@ package spotify
 
 import (
    "bytes"
-   "crypto/hmac"
-   "crypto/sha1"
-   "encoding/base64"
+   "encoding/hex"
    "fmt"
+   "github.com/89z/spotify/pb"
+   "github.com/golang/protobuf/proto"
    "io"
    "log"
    "math/big"
    "net"
-   cryptoRand "crypto/rand"
+   "os"
 )
 
-const (
-   AudioFile_OGG_VORBIS_96   = 0
-   AudioFile_OGG_VORBIS_160  = 1
-   AudioFile_OGG_VORBIS_320  = 2
-)
-
-func (s *session) doConnect() error {
+func (s *Session) doConnect() error {
    con, err := net.Dial("tcp", "ap.spotify.com:80")
    if err != nil {
       return err
@@ -28,7 +22,7 @@ func (s *session) doConnect() error {
    return nil
 }
 
-func Login(username string, password string, deviceName string) (*session, error) {
+func Login(username string, password string, deviceName string) (*Session, error) {
    private := new(big.Int)
    ran, err := randomVec(95)
    if err != nil {
@@ -52,7 +46,7 @@ func Login(username string, password string, deviceName string) (*session, error
    if err != nil {
       return nil, err
    }
-   ses := &session{
+   ses := &Session{
       keys: privateKeys{
          clientNonce: non,
          generator:   DH_GENERATOR,
@@ -72,8 +66,7 @@ func Login(username string, password string, deviceName string) (*session, error
    return ses, nil
 }
 
-
-func (s *session) handle(cmd uint8, data []byte) {
+func (s *Session) handle(cmd uint8, data []byte) {
    switch cmd {
    case 0x1f:
       // Unknown, data is zeroes only
@@ -110,7 +103,7 @@ func (s *session) handle(cmd uint8, data []byte) {
    }
 }
 
-func (s *session) runPollLoop() {
+func (s *Session) runPollLoop() {
    for {
       cmd, data, err := s.stream.recvPacket()
       if err != nil {
@@ -124,81 +117,169 @@ func (s *session) runPollLoop() {
    }
 }
 
-func generateDeviceId(name string) string {
-   hash := sha1.Sum([]byte(name))
-   return base64.StdEncoding.EncodeToString(hash[:])
-}
-
-func powm(base, exp, modulus *big.Int) *big.Int {
-	exp2 := big.NewInt(0).SetBytes(exp.Bytes())
-	base2 := big.NewInt(0).SetBytes(base.Bytes())
-	modulus2 := big.NewInt(0).SetBytes(modulus.Bytes())
-	zero := big.NewInt(0)
-	result := big.NewInt(1)
-	temp := new(big.Int)
-
-	for zero.Cmp(exp2) != 0 {
-		if temp.Rem(exp2, big.NewInt(2)).Cmp(zero) != 0 {
-			result = result.Mul(result, base2)
-			result = result.Rem(result, modulus2)
-		}
-		exp2 = exp2.Rsh(exp2, 1)
-		base2 = base2.Mul(base2, base2)
-		base2 = base2.Rem(base2, modulus2)
-	}
-	return result
-}
-
-func randomVec(count int) ([]byte, error) {
-   b := make([]byte, count)
-   _, err := cryptoRand.Read(b)
+func (s *Session) loginSession(username string, password string, deviceName string) error {
+   s.deviceId = generateDeviceId(deviceName)
+   s.deviceName = deviceName
+   err := s.startConnection()
    if err != nil {
-      return nil, err
+      return err
    }
-   return b, nil
+   loginPacket, err := makeLoginBlobPacket(
+      username,
+      []byte(password),
+      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(),
+      s.deviceId,
+   )
+   if err != nil {
+      return err
+   }
+   return s.doLogin(loginPacket, username)
 }
 
-type blobInfo struct {
-   Username    string
-   DecodedBlob string
+func (s *Session) doLogin(packet []byte, username string) error {
+   err := s.stream.sendPacket(packetLogin, packet)
+   if err != nil {
+      return err
+   }
+   // Pll once for authentication response
+   cmd, data, err := s.stream.recvPacket()
+   if err != nil {
+      return err
+   }
+   switch cmd {
+   case packetAuthFailure:
+      failure := &pb.APLoginFailed{}
+      err := proto.Unmarshal(data, failure)
+      if err != nil {
+         return err
+      }
+      return fmt.Errorf("errorCode %v", failure.ErrorCode)
+   case packetAPWelcome:
+      welcome := new(pb.APWelcome)
+      err := proto.Unmarshal(data, welcome)
+      if err != nil {
+         return fmt.Errorf("authentication failed: %v", err)
+      }
+      // Store the few interesting values
+      s.username = welcome.GetCanonicalUsername()
+      if s.username == "" {
+         s.username = s.discovery.Username
+      }
+      s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
+      // Poll for acknowledge before loading - needed for gopherjs
+      go s.runPollLoop()
+      return nil
+   }
+   return fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
 }
 
-type privateKeys struct {
-   clientNonce []byte
-   generator   *big.Int
-   prime       *big.Int
-   privateKey *big.Int
-   publicKey  *big.Int
+func (s *Session) startConnection() error {
+   conn := makePlainConnection(s.tcpCon, s.tcpCon)
+   helloMessage, err := makeHelloMessage(
+      s.keys.publicKey.Bytes(),
+      s.keys.clientNonce,
+   )
+   if err != nil {
+      return err
+   }
+   initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
+   if err != nil {
+      return err
+   }
+   // Wait and read the hello reply
+   initServerPacket, err := conn.recvPacket()
+   if err != nil {
+      return err
+   }
+   response := pb.APResponseMessage{}
+   err = proto.Unmarshal(initServerPacket[4:], &response)
+   if err != nil {
+      return err
+   }
+   remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
+   sharedKeys := s.keys.addRemoteKey(
+      remoteKey, initClientPacket, initServerPacket,
+   )
+   plainResponse := &pb.ClientResponsePlaintext{
+      CryptoResponse: &pb.CryptoResponseUnion{},
+      LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
+         DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
+            Hmac: sharedKeys.challenge,
+         },
+      },
+      PowResponse:    &pb.PoWResponseUnion{},
+   }
+   plainResponseMessage, err := proto.Marshal(plainResponse)
+   if err != nil {
+      return err
+   }
+   _, err = conn.sendPrefixPacket([]byte{}, plainResponseMessage)
+   if err != nil {
+      return err
+   }
+   s.stream = s.shannonConstructor(sharedKeys, conn)
+   s.mercury = s.mercuryConstructor(s.stream)
+   s.player = createPlayer(s.stream, s.mercury)
+   return nil
 }
 
-func (p *privateKeys) addRemoteKey(remote []byte, clientPacket []byte, serverPacket []byte) sharedKeys {
-	remote_be := new(big.Int)
-	remote_be.SetBytes(remote)
-	shared_key := powm(remote_be, p.privateKey, p.prime)
-	data := make([]byte, 0, 100)
-	mac := hmac.New(sha1.New, shared_key.Bytes())
-
-	for i := 1; i < 6; i++ {
-		mac.Write(clientPacket)
-		mac.Write(serverPacket)
-		mac.Write([]byte{uint8(i)})
-		data = append(data, mac.Sum(nil)...)
-		mac.Reset()
-	}
-
-	mac = hmac.New(sha1.New, data[0:0x14])
-	mac.Write(clientPacket)
-	mac.Write(serverPacket)
-
-	return sharedKeys{
-		challenge: mac.Sum(nil),
-		sendKey:   data[0x14:0x34],
-		recvKey:   data[0x34:0x54],
-	}
+func (ses *Session) DownloadTrackID(id string) error {
+   b62 := new(big.Int)
+   b62.SetString(id, 62)
+   id = hex.EncodeToString(b62.Bytes())
+   addr := "hm://metadata/4/track/" + id
+   fmt.Println("GET", addr)
+   data := ses.mercury.mercuryGet(addr)
+   var trk pb.Track
+   err := proto.Unmarshal(data, &trk)
+   if err != nil {
+      return err
+   }
+   fSelect, err := getFormat(trk)
+   if err != nil {
+      return err
+   }
+   trackID := trk.GetGid()
+   aFile := newAudioFileWithIdAndFormat(
+      fSelect.FileId,
+      AudioFile_OGG_VORBIS_160,
+      ses.player,
+   )
+   // Start loading the audio key
+   if err := aFile.loadKey(trackID); err != nil {
+      return err
+   }
+   // Then start loading the audio itself
+   aFile.loadChunks()
+   file, err := os.Create("file.ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(aFile); err != nil {
+      return err
+   }
+   return nil
 }
 
-type sharedKeys struct {
-	challenge []byte
-	sendKey   []byte
-	recvKey   []byte
+type Session struct {
+   // Constructor references
+   mercuryConstructor func(conn packetStream) *client
+   shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
+   // Managers and helpers
+   stream packetStream
+   mercury *client
+   player *player
+   tcpCon io.ReadWriter
+   // keys are the encryption keys used to communicate with the server
+   keys privateKeys
+   // State and variables
+   deviceId string
+   deviceName string
+   // username is the currently authenticated canonical username
+   username string
+   reusableAuthBlob []byte
+   country string
+   discovery *blobInfo
 }
+

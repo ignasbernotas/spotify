@@ -4,16 +4,13 @@ This module works with Spotify free accounts. It can download individual
 tracks. It downloads the audio files served by Spotify's servers and does not
 work by recording audio outputs.
 
+https://godocs.io/github.com/89z/spotify
+
+## Links
+
 - https://apkpure.com/spotify-music-i/com.spotify.music
-- https://github.com/librespot-org/librespot/blob/dev/audio/src/decrypt.rs
-
-## LoginCryptoHelloUnion
-
-- https://github.com/RustedBones/sc4s/issues/73
-- https://github.com/ejurgensen/librespot-c/issues/1
-- https://github.com/feelfreelinux/cspot/issues/71
-- https://github.com/jpochyla/psst/issues/122
 - https://github.com/kokarare1212/librespot-python
+- https://github.com/librespot-org/librespot/blob/dev/audio/src/decrypt.rs
 
 ## HTTPS
 

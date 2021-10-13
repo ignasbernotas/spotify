@@ -471,24 +471,3 @@ func createStream(keys sharedKeys, conn plainConnection) packetStream {
    return s
 }
 
-type session struct {
-   // Constructor references
-   mercuryConstructor func(conn packetStream) *client
-   shannonConstructor func(keys sharedKeys, conn plainConnection) packetStream
-   // Managers and helpers
-   stream packetStream
-   mercury *client
-   player *player
-   tcpCon io.ReadWriter
-   // keys are the encryption keys used to communicate with the server
-   keys privateKeys
-   // State and variables
-   deviceId string
-   deviceName string
-   // username is the currently authenticated canonical username
-   username string
-   reusableAuthBlob []byte
-   country string
-   discovery *blobInfo
-}
-
