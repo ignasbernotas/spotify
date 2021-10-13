@@ -46,9 +46,9 @@ type audioFile struct {
 func (a *audioFile) headerOffset() int {
    switch a.aFormat {
    case
-   AudioFile_OGG_VORBIS_160,
-   AudioFile_OGG_VORBIS_320,
-   AudioFile_OGG_VORBIS_96:
+   audioFile_OGG_VORBIS_160,
+   audioFile_OGG_VORBIS_320,
+   audioFile_OGG_VORBIS_96:
       return oggSkipBytesK
    }
    return 0

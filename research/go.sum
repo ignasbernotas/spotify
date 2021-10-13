@@ -1,7 +1,7 @@
 github.com/89z/parse v1.3.5 h1:v0W6p6ITPvWfsyy7XOIhINWr1dIm/3IsJPDC40Wh1Nw=
 github.com/89z/parse v1.3.5/go.mod h1:tEBbkS1ysJNYYuMjGi9MFnJu3A3bdwBiWvugmHMsq4A=
-github.com/89z/spotify v0.0.0-20211013014556-22e29d14b740 h1:vX7pB1Mp1kNdWfwZHNodbFCHOMDDBuNYUrsvQy39qtI=
-github.com/89z/spotify v0.0.0-20211013014556-22e29d14b740/go.mod h1:xqWeumw9mE92JYzIIdYLH+eKYedgTBpLnrgg2Q67qEU=
+github.com/89z/spotify v1.0.1 h1:Ay5E5jaow4GzyDrvHmAF5xC4DycNruiDFXWchAsNLn4=
+github.com/89z/spotify v1.0.1/go.mod h1:xqWeumw9mE92JYzIIdYLH+eKYedgTBpLnrgg2Q67qEU=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=

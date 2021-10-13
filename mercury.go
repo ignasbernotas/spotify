@@ -13,6 +13,12 @@ import (
    cryptoRand "crypto/rand"
 )
 
+const (
+   audioFile_OGG_VORBIS_160  = 1
+   audioFile_OGG_VORBIS_320  = 2
+   audioFile_OGG_VORBIS_96   = 0
+)
+
 type request struct {
    contentType string
    method      string
@@ -144,11 +150,6 @@ func (res *response) combinePayload() []byte {
 	return body
 }
 
-const (
-   AudioFile_OGG_VORBIS_96   = 0
-   AudioFile_OGG_VORBIS_160  = 1
-   AudioFile_OGG_VORBIS_320  = 2
-)
 
 func generateDeviceId(name string) string {
    hash := sha1.Sum([]byte(name))

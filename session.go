@@ -242,7 +242,7 @@ func (ses *Session) DownloadTrackID(id string) error {
    trackID := trk.GetGid()
    aFile := newAudioFileWithIdAndFormat(
       fSelect.FileId,
-      AudioFile_OGG_VORBIS_160,
+      audioFile_OGG_VORBIS_160,
       ses.player,
    )
    // Start loading the audio key

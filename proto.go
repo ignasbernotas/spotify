@@ -119,7 +119,7 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
 
 func getFormat(track pb.Track) (*pb.AudioFile, error) {
    for _, file := range track.GetFile() {
-      if file.GetFormat() == AudioFile_OGG_VORBIS_160 {
+      if file.GetFormat() == audioFile_OGG_VORBIS_160 {
          return file, nil
       }
    }
