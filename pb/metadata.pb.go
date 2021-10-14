@@ -1,69 +1,8 @@
 package pb
-import "github.com/golang/protobuf/proto"
 
-
-type Copyright_Type int32
-
-const (
-	Copyright_P Copyright_Type = 0
-	Copyright_C Copyright_Type = 1
+import (
+   "github.com/golang/protobuf/proto"
 )
-
-var Copyright_Type_name = map[int32]string{
-	0: "P",
-	1: "C",
-}
-var Copyright_Type_value = map[string]int32{
-	"P": 0,
-	"C": 1,
-}
-
-func (x Copyright_Type) Enum() *Copyright_Type {
-	p := new(Copyright_Type)
-	*p = x
-	return p
-}
-func (x Copyright_Type) String() string {
-	return proto.EnumName(Copyright_Type_name, int32(x))
-}
-func (x *Copyright_Type) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Copyright_Type_value, data, "Copyright_Type")
-	if err != nil {
-		return err
-	}
-	*x = Copyright_Type(value)
-	return nil
-}
-
-type Restriction_Type int32
-
-const (
-	Restriction_STREAMING Restriction_Type = 0
-)
-
-var Restriction_Type_name = map[int32]string{
-	0: "STREAMING",
-}
-var Restriction_Type_value = map[string]int32{
-	"STREAMING": 0,
-}
-
-func (x Restriction_Type) Enum() *Restriction_Type {
-	p := new(Restriction_Type)
-	*p = x
-	return p
-}
-func (x Restriction_Type) String() string {
-	return proto.EnumName(Restriction_Type_name, int32(x))
-}
-func (x *Restriction_Type) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Restriction_Type_value, data, "Restriction_Type")
-	if err != nil {
-		return err
-	}
-	*x = Restriction_Type(value)
-	return nil
-}
 
 type AudioFile_Format int32
 
@@ -83,56 +22,6 @@ const (
 	AudioFile_OTHER4         AudioFile_Format = 12
 	AudioFile_OTHER5         AudioFile_Format = 13
 )
-
-var AudioFile_Format_name = map[int32]string{
-	0:  "OGG_VORBIS_96",
-	1:  "OGG_VORBIS_160",
-	2:  "OGG_VORBIS_320",
-	3:  "MP3_256",
-	4:  "MP3_320",
-	5:  "MP3_160",
-	6:  "MP3_96",
-	7:  "MP3_160_ENC",
-	8:  "OTHER2",
-	9:  "OTHER3",
-	10: "AAC_160",
-	11: "AAC_320",
-	12: "OTHER4",
-	13: "OTHER5",
-}
-var AudioFile_Format_value = map[string]int32{
-	"OGG_VORBIS_96":  0,
-	"OGG_VORBIS_160": 1,
-	"OGG_VORBIS_320": 2,
-	"MP3_256":        3,
-	"MP3_320":        4,
-	"MP3_160":        5,
-	"MP3_96":         6,
-	"MP3_160_ENC":    7,
-	"OTHER2":         8,
-	"OTHER3":         9,
-	"AAC_160":        10,
-	"AAC_320":        11,
-	"OTHER4":         12,
-	"OTHER5":         13,
-}
-
-func (x AudioFile_Format) Enum() *AudioFile_Format {
-	p := new(AudioFile_Format)
-	*p = x
-	return p
-}
-func (x AudioFile_Format) String() string {
-	return proto.EnumName(AudioFile_Format_name, int32(x))
-}
-func (x *AudioFile_Format) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(AudioFile_Format_value, data, "AudioFile_Format")
-	if err != nil {
-		return err
-	}
-	*x = AudioFile_Format(value)
-	return nil
-}
 
 type TopTracks struct {
 	Country          *string  `protobuf:"bytes,1,opt,name=country" json:"country,omitempty"`
@@ -304,7 +193,6 @@ func (m *Disc) String() string            { return proto.CompactTextString(m) }
 func (*Disc) ProtoMessage()               {}
 
 type Copyright struct {
-	Typ              *Copyright_Type `protobuf:"varint,1,opt,name=typ,enum=Spotify.Copyright_Type" json:"typ,omitempty"`
 	Text             *string         `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
 	XXX_unrecognized []byte          `json:"-"`
 }
@@ -316,7 +204,6 @@ func (*Copyright) ProtoMessage()               {}
 type Restriction struct {
 	CountriesAllowed   *string           `protobuf:"bytes,2,opt,name=countries_allowed,json=countriesAllowed" json:"countries_allowed,omitempty"`
 	CountriesForbidden *string           `protobuf:"bytes,3,opt,name=countries_forbidden,json=countriesForbidden" json:"countries_forbidden,omitempty"`
-	Typ                *Restriction_Type `protobuf:"varint,4,opt,name=typ,enum=Spotify.Restriction_Type" json:"typ,omitempty"`
 	CatalogueStr       []string          `protobuf:"bytes,5,rep,name=catalogue_str,json=catalogueStr" json:"catalogue_str,omitempty"`
 	XXX_unrecognized   []byte            `json:"-"`
 }
