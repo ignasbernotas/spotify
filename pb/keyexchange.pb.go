@@ -371,13 +371,6 @@ func (m *LoginCryptoHelloUnion) Reset()                    { *m = LoginCryptoHel
 func (m *LoginCryptoHelloUnion) String() string            { return proto.CompactTextString(m) }
 func (*LoginCryptoHelloUnion) ProtoMessage()               {}
 
-func (m *LoginCryptoHelloUnion) GetDiffieHellman() *LoginCryptoDiffieHellmanHello {
-	if m != nil {
-		return m.DiffieHellman
-	}
-	return nil
-}
-
 type LoginCryptoDiffieHellmanHello struct {
 	Gc               []byte  `protobuf:"bytes,10,req,name=gc" json:"gc,omitempty"`
 	ServerKeysKnown  *uint32 `protobuf:"varint,20,req,name=server_keys_known,json=serverKeysKnown" json:"server_keys_known,omitempty"`
@@ -387,20 +380,6 @@ type LoginCryptoDiffieHellmanHello struct {
 func (m *LoginCryptoDiffieHellmanHello) Reset()                    { *m = LoginCryptoDiffieHellmanHello{} }
 func (m *LoginCryptoDiffieHellmanHello) String() string            { return proto.CompactTextString(m) }
 func (*LoginCryptoDiffieHellmanHello) ProtoMessage()               {}
-
-func (m *LoginCryptoDiffieHellmanHello) GetGc() []byte {
-	if m != nil {
-		return m.Gc
-	}
-	return nil
-}
-
-func (m *LoginCryptoDiffieHellmanHello) GetServerKeysKnown() uint32 {
-	if m != nil && m.ServerKeysKnown != nil {
-		return *m.ServerKeysKnown
-	}
-	return 0
-}
 
 type FeatureSet struct {
 	Autoupdate2      *bool  `protobuf:"varint,1,opt,name=autoupdate2" json:"autoupdate2,omitempty"`
@@ -412,20 +391,6 @@ func (m *FeatureSet) Reset()                    { *m = FeatureSet{} }
 func (m *FeatureSet) String() string            { return proto.CompactTextString(m) }
 func (*FeatureSet) ProtoMessage()               {}
 
-func (m *FeatureSet) GetAutoupdate2() bool {
-	if m != nil && m.Autoupdate2 != nil {
-		return *m.Autoupdate2
-	}
-	return false
-}
-
-func (m *FeatureSet) GetCurrentLocation() bool {
-	if m != nil && m.CurrentLocation != nil {
-		return *m.CurrentLocation
-	}
-	return false
-}
-
 type APResponseMessage struct {
 	Challenge        *APChallenge            `protobuf:"bytes,10,opt,name=challenge" json:"challenge,omitempty"`
 	Upgrade          *UpgradeRequiredMessage `protobuf:"bytes,20,opt,name=upgrade" json:"upgrade,omitempty"`
@@ -436,27 +401,6 @@ type APResponseMessage struct {
 func (m *APResponseMessage) Reset()                    { *m = APResponseMessage{} }
 func (m *APResponseMessage) String() string            { return proto.CompactTextString(m) }
 func (*APResponseMessage) ProtoMessage()               {}
-
-func (m *APResponseMessage) GetChallenge() *APChallenge {
-	if m != nil {
-		return m.Challenge
-	}
-	return nil
-}
-
-func (m *APResponseMessage) GetUpgrade() *UpgradeRequiredMessage {
-	if m != nil {
-		return m.Upgrade
-	}
-	return nil
-}
-
-func (m *APResponseMessage) GetLoginFailed() *APLoginFailed {
-	if m != nil {
-		return m.LoginFailed
-	}
-	return nil
-}
 
 type APChallenge struct {
 	LoginCryptoChallenge *LoginCryptoChallengeUnion `protobuf:"bytes,10,req,name=login_crypto_challenge,json=loginCryptoChallenge" json:"login_crypto_challenge,omitempty"`
@@ -471,48 +415,6 @@ type APChallenge struct {
 func (m *APChallenge) Reset()                    { *m = APChallenge{} }
 func (m *APChallenge) String() string            { return proto.CompactTextString(m) }
 func (*APChallenge) ProtoMessage()               {}
-
-func (m *APChallenge) GetLoginCryptoChallenge() *LoginCryptoChallengeUnion {
-	if m != nil {
-		return m.LoginCryptoChallenge
-	}
-	return nil
-}
-
-func (m *APChallenge) GetFingerprintChallenge() *FingerprintChallengeUnion {
-	if m != nil {
-		return m.FingerprintChallenge
-	}
-	return nil
-}
-
-func (m *APChallenge) GetPowChallenge() *PoWChallengeUnion {
-	if m != nil {
-		return m.PowChallenge
-	}
-	return nil
-}
-
-func (m *APChallenge) GetCryptoChallenge() *CryptoChallengeUnion {
-	if m != nil {
-		return m.CryptoChallenge
-	}
-	return nil
-}
-
-func (m *APChallenge) GetServerNonce() []byte {
-	if m != nil {
-		return m.ServerNonce
-	}
-	return nil
-}
-
-func (m *APChallenge) GetPadding() []byte {
-	if m != nil {
-		return m.Padding
-	}
-	return nil
-}
 
 type LoginCryptoChallengeUnion struct {
 	DiffieHellman    *LoginCryptoDiffieHellmanChallenge `protobuf:"bytes,10,opt,name=diffie_hellman,json=diffieHellman" json:"diffie_hellman,omitempty"`
