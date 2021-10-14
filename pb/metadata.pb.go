@@ -1,83 +1,6 @@
 package pb
 import "github.com/golang/protobuf/proto"
 
-type Album_Type int32
-
-const (
-	Album_ALBUM       Album_Type = 1
-	Album_SINGLE      Album_Type = 2
-	Album_COMPILATION Album_Type = 3
-	Album_EP          Album_Type = 4
-)
-
-var Album_Type_name = map[int32]string{
-	1: "ALBUM",
-	2: "SINGLE",
-	3: "COMPILATION",
-	4: "EP",
-}
-var Album_Type_value = map[string]int32{
-	"ALBUM":       1,
-	"SINGLE":      2,
-	"COMPILATION": 3,
-	"EP":          4,
-}
-
-func (x Album_Type) Enum() *Album_Type {
-	p := new(Album_Type)
-	*p = x
-	return p
-}
-func (x Album_Type) String() string {
-	return proto.EnumName(Album_Type_name, int32(x))
-}
-func (x *Album_Type) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Album_Type_value, data, "Album_Type")
-	if err != nil {
-		return err
-	}
-	*x = Album_Type(value)
-	return nil
-}
-
-type Image_Size int32
-
-const (
-	Image_DEFAULT Image_Size = 0
-	Image_SMALL   Image_Size = 1
-	Image_LARGE   Image_Size = 2
-	Image_XLARGE  Image_Size = 3
-)
-
-var Image_Size_name = map[int32]string{
-	0: "DEFAULT",
-	1: "SMALL",
-	2: "LARGE",
-	3: "XLARGE",
-}
-var Image_Size_value = map[string]int32{
-	"DEFAULT": 0,
-	"SMALL":   1,
-	"LARGE":   2,
-	"XLARGE":  3,
-}
-
-func (x Image_Size) Enum() *Image_Size {
-	p := new(Image_Size)
-	*p = x
-	return p
-}
-func (x Image_Size) String() string {
-	return proto.EnumName(Image_Size_name, int32(x))
-}
-func (x *Image_Size) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Image_Size_value, data, "Image_Size")
-	if err != nil {
-		return err
-	}
-	*x = Image_Size(value)
-	return nil
-}
 
 type Copyright_Type int32
 
@@ -281,7 +204,6 @@ type Album struct {
 	Gid              []byte         `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
 	Name             *string        `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	Artist           []*Artist      `protobuf:"bytes,3,rep,name=artist" json:"artist,omitempty"`
-	Typ              *Album_Type    `protobuf:"varint,4,opt,name=typ,enum=Spotify.Album_Type" json:"typ,omitempty"`
 	Label            *string        `protobuf:"bytes,5,opt,name=label" json:"label,omitempty"`
 	Date             *Date          `protobuf:"bytes,6,opt,name=date" json:"date,omitempty"`
 	Popularity       *int32         `protobuf:"zigzag32,7,opt,name=popularity" json:"popularity,omitempty"`
@@ -341,7 +263,6 @@ func (m *Track) GetFile() []*AudioFile {
 
 type Image struct {
 	FileId           []byte      `protobuf:"bytes,1,opt,name=file_id,json=fileId" json:"file_id,omitempty"`
-	Size             *Image_Size `protobuf:"varint,2,opt,name=size,enum=Spotify.Image_Size" json:"size,omitempty"`
 	Width            *int32      `protobuf:"zigzag32,3,opt,name=width" json:"width,omitempty"`
 	Height           *int32      `protobuf:"zigzag32,4,opt,name=height" json:"height,omitempty"`
 	XXX_unrecognized []byte      `json:"-"`
