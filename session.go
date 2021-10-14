@@ -2,15 +2,11 @@ package spotify
 
 import (
    "bytes"
-   "encoding/hex"
    "fmt"
-   "github.com/89z/spotify/pb"
-   "github.com/golang/protobuf/proto"
    "io"
    "log"
    "math/big"
    "net"
-   "os"
 )
 
 func (s *Session) doConnect() error {
@@ -115,151 +111,6 @@ func (s *Session) runPollLoop() {
          s.handle(cmd, data)
       }
    }
-}
-
-func (s *Session) loginSession(username string, password string, deviceName string) error {
-   s.deviceId = generateDeviceId(deviceName)
-   s.deviceName = deviceName
-   err := s.startConnection()
-   if err != nil {
-      return err
-   }
-   loginPacket, err := makeLoginBlobPacket(
-      username,
-      []byte(password),
-      pb.AuthenticationType_AUTHENTICATION_UNKNOWN.Enum(),
-      s.deviceId,
-   )
-   if err != nil {
-      return err
-   }
-   return s.doLogin(loginPacket, username)
-}
-
-func (s *Session) doLogin(packet []byte, username string) error {
-   err := s.stream.sendPacket(packetLogin, packet)
-   if err != nil {
-      return err
-   }
-   // Pll once for authentication response
-   cmd, data, err := s.stream.recvPacket()
-   if err != nil {
-      return err
-   }
-   switch cmd {
-   case packetAuthFailure:
-      failure := &pb.APLoginFailed{}
-      err := proto.Unmarshal(data, failure)
-      if err != nil {
-         return err
-      }
-      return fmt.Errorf("errorCode %v", failure.ErrorCode)
-   case packetAPWelcome:
-      welcome := new(pb.APWelcome)
-      err := proto.Unmarshal(data, welcome)
-      if err != nil {
-         return fmt.Errorf("authentication failed: %v", err)
-      }
-      // Store the few interesting values
-      s.username = welcome.GetCanonicalUsername()
-      if s.username == "" {
-         s.username = s.discovery.Username
-      }
-      s.reusableAuthBlob = welcome.GetReusableAuthCredentials()
-      // Poll for acknowledge before loading - needed for gopherjs
-      go s.runPollLoop()
-      return nil
-   }
-   return fmt.Errorf("authentication failed: unexpected cmd %v", cmd)
-}
-
-func (s *Session) startConnection() error {
-   conn := makePlainConnection(s.tcpCon, s.tcpCon)
-   helloMessage, err := makeHelloMessage(
-      s.keys.publicKey.Bytes(),
-      s.keys.clientNonce,
-   )
-   if err != nil {
-      return err
-   }
-   initClientPacket, err := conn.sendPrefixPacket([]byte{0, 4}, helloMessage)
-   if err != nil {
-      return err
-   }
-   // Wait and read the hello reply
-   initServerPacket, err := conn.recvPacket()
-   if err != nil {
-      return err
-   }
-   response := pb.APResponseMessage{}
-   err = proto.Unmarshal(initServerPacket[4:], &response)
-   if err != nil {
-      return err
-   }
-   remoteKey := response.Challenge.LoginCryptoChallenge.DiffieHellman.Gs
-   sharedKeys := s.keys.addRemoteKey(
-      remoteKey, initClientPacket, initServerPacket,
-   )
-   plainResponse := &pb.ClientResponsePlaintext{
-      CryptoResponse: &pb.CryptoResponseUnion{},
-      LoginCryptoResponse: &pb.LoginCryptoResponseUnion{
-         DiffieHellman: &pb.LoginCryptoDiffieHellmanResponse{
-            Hmac: sharedKeys.challenge,
-         },
-      },
-      PowResponse:    &pb.PoWResponseUnion{},
-   }
-   plainResponseMessage, err := proto.Marshal(plainResponse)
-   if err != nil {
-      return err
-   }
-   _, err = conn.sendPrefixPacket([]byte{}, plainResponseMessage)
-   if err != nil {
-      return err
-   }
-   s.stream = s.shannonConstructor(sharedKeys, conn)
-   s.mercury = s.mercuryConstructor(s.stream)
-   s.player = createPlayer(s.stream, s.mercury)
-   return nil
-}
-
-func (ses *Session) DownloadTrackID(id string) error {
-   b62 := new(big.Int)
-   b62.SetString(id, 62)
-   id = hex.EncodeToString(b62.Bytes())
-   addr := "hm://metadata/4/track/" + id
-   fmt.Println("GET", addr)
-   data := ses.mercury.mercuryGet(addr)
-   var trk pb.Track
-   err := proto.Unmarshal(data, &trk)
-   if err != nil {
-      return err
-   }
-   fSelect, err := getFormat(trk)
-   if err != nil {
-      return err
-   }
-   trackID := trk.GetGid()
-   aFile := newAudioFileWithIdAndFormat(
-      fSelect.FileId,
-      audioFile_OGG_VORBIS_160,
-      ses.player,
-   )
-   // Start loading the audio key
-   if err := aFile.loadKey(trackID); err != nil {
-      return err
-   }
-   // Then start loading the audio itself
-   aFile.loadChunks()
-   file, err := os.Create("file.ogg")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   if _, err := file.ReadFrom(aFile); err != nil {
-      return err
-   }
-   return nil
 }
 
 type Session struct {
