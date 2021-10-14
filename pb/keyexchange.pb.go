@@ -425,13 +425,6 @@ func (m *LoginCryptoChallengeUnion) Reset()                    { *m = LoginCrypt
 func (m *LoginCryptoChallengeUnion) String() string            { return proto.CompactTextString(m) }
 func (*LoginCryptoChallengeUnion) ProtoMessage()               {}
 
-func (m *LoginCryptoChallengeUnion) GetDiffieHellman() *LoginCryptoDiffieHellmanChallenge {
-	if m != nil {
-		return m.DiffieHellman
-	}
-	return nil
-}
-
 type LoginCryptoDiffieHellmanChallenge struct {
 	Gs                 []byte `protobuf:"bytes,10,req,name=gs" json:"gs,omitempty"`
 	ServerSignatureKey *int32 `protobuf:"varint,20,req,name=server_signature_key,json=serverSignatureKey" json:"server_signature_key,omitempty"`
@@ -443,27 +436,6 @@ func (m *LoginCryptoDiffieHellmanChallenge) Reset()         { *m = LoginCryptoDi
 func (m *LoginCryptoDiffieHellmanChallenge) String() string { return proto.CompactTextString(m) }
 func (*LoginCryptoDiffieHellmanChallenge) ProtoMessage()    {}
 
-func (m *LoginCryptoDiffieHellmanChallenge) GetGs() []byte {
-	if m != nil {
-		return m.Gs
-	}
-	return nil
-}
-
-func (m *LoginCryptoDiffieHellmanChallenge) GetServerSignatureKey() int32 {
-	if m != nil && m.ServerSignatureKey != nil {
-		return *m.ServerSignatureKey
-	}
-	return 0
-}
-
-func (m *LoginCryptoDiffieHellmanChallenge) GetGsSignature() []byte {
-	if m != nil {
-		return m.GsSignature
-	}
-	return nil
-}
-
 type FingerprintChallengeUnion struct {
 	Grain            *FingerprintGrainChallenge      `protobuf:"bytes,10,opt,name=grain" json:"grain,omitempty"`
 	HmacRipemd       *FingerprintHmacRipemdChallenge `protobuf:"bytes,20,opt,name=hmac_ripemd,json=hmacRipemd" json:"hmac_ripemd,omitempty"`
@@ -474,20 +446,6 @@ func (m *FingerprintChallengeUnion) Reset()                    { *m = Fingerprin
 func (m *FingerprintChallengeUnion) String() string            { return proto.CompactTextString(m) }
 func (*FingerprintChallengeUnion) ProtoMessage()               {}
 
-func (m *FingerprintChallengeUnion) GetGrain() *FingerprintGrainChallenge {
-	if m != nil {
-		return m.Grain
-	}
-	return nil
-}
-
-func (m *FingerprintChallengeUnion) GetHmacRipemd() *FingerprintHmacRipemdChallenge {
-	if m != nil {
-		return m.HmacRipemd
-	}
-	return nil
-}
-
 type FingerprintGrainChallenge struct {
 	Kek              []byte `protobuf:"bytes,10,req,name=kek" json:"kek,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
@@ -496,13 +454,6 @@ type FingerprintGrainChallenge struct {
 func (m *FingerprintGrainChallenge) Reset()                    { *m = FingerprintGrainChallenge{} }
 func (m *FingerprintGrainChallenge) String() string            { return proto.CompactTextString(m) }
 func (*FingerprintGrainChallenge) ProtoMessage()               {}
-
-func (m *FingerprintGrainChallenge) GetKek() []byte {
-	if m != nil {
-		return m.Kek
-	}
-	return nil
-}
 
 type FingerprintHmacRipemdChallenge struct {
 	Challenge        []byte `protobuf:"bytes,10,req,name=challenge" json:"challenge,omitempty"`
@@ -513,13 +464,6 @@ func (m *FingerprintHmacRipemdChallenge) Reset()         { *m = FingerprintHmacR
 func (m *FingerprintHmacRipemdChallenge) String() string { return proto.CompactTextString(m) }
 func (*FingerprintHmacRipemdChallenge) ProtoMessage()    {}
 
-func (m *FingerprintHmacRipemdChallenge) GetChallenge() []byte {
-	if m != nil {
-		return m.Challenge
-	}
-	return nil
-}
-
 type PoWChallengeUnion struct {
 	HashCash         *PoWHashCashChallenge `protobuf:"bytes,10,opt,name=hash_cash,json=hashCash" json:"hash_cash,omitempty"`
 	XXX_unrecognized []byte                `json:"-"`
@@ -528,13 +472,6 @@ type PoWChallengeUnion struct {
 func (m *PoWChallengeUnion) Reset()                    { *m = PoWChallengeUnion{} }
 func (m *PoWChallengeUnion) String() string            { return proto.CompactTextString(m) }
 func (*PoWChallengeUnion) ProtoMessage()               {}
-
-func (m *PoWChallengeUnion) GetHashCash() *PoWHashCashChallenge {
-	if m != nil {
-		return m.HashCash
-	}
-	return nil
-}
 
 type PoWHashCashChallenge struct {
 	Prefix           []byte `protobuf:"bytes,10,opt,name=prefix" json:"prefix,omitempty"`
@@ -547,27 +484,6 @@ func (m *PoWHashCashChallenge) Reset()                    { *m = PoWHashCashChal
 func (m *PoWHashCashChallenge) String() string            { return proto.CompactTextString(m) }
 func (*PoWHashCashChallenge) ProtoMessage()               {}
 
-func (m *PoWHashCashChallenge) GetPrefix() []byte {
-	if m != nil {
-		return m.Prefix
-	}
-	return nil
-}
-
-func (m *PoWHashCashChallenge) GetLength() int32 {
-	if m != nil && m.Length != nil {
-		return *m.Length
-	}
-	return 0
-}
-
-func (m *PoWHashCashChallenge) GetTarget() int32 {
-	if m != nil && m.Target != nil {
-		return *m.Target
-	}
-	return 0
-}
-
 type CryptoChallengeUnion struct {
 	Shannon          *CryptoShannonChallenge     `protobuf:"bytes,10,opt,name=shannon" json:"shannon,omitempty"`
 	Rc4Sha1Hmac      *CryptoRc4Sha1HmacChallenge `protobuf:"bytes,20,opt,name=rc4_sha1_hmac,json=rc4Sha1Hmac" json:"rc4_sha1_hmac,omitempty"`
@@ -577,20 +493,6 @@ type CryptoChallengeUnion struct {
 func (m *CryptoChallengeUnion) Reset()                    { *m = CryptoChallengeUnion{} }
 func (m *CryptoChallengeUnion) String() string            { return proto.CompactTextString(m) }
 func (*CryptoChallengeUnion) ProtoMessage()               {}
-
-func (m *CryptoChallengeUnion) GetShannon() *CryptoShannonChallenge {
-	if m != nil {
-		return m.Shannon
-	}
-	return nil
-}
-
-func (m *CryptoChallengeUnion) GetRc4Sha1Hmac() *CryptoRc4Sha1HmacChallenge {
-	if m != nil {
-		return m.Rc4Sha1Hmac
-	}
-	return nil
-}
 
 type CryptoShannonChallenge struct {
 	XXX_unrecognized []byte `json:"-"`
@@ -619,27 +521,6 @@ func (m *UpgradeRequiredMessage) Reset()                    { *m = UpgradeRequir
 func (m *UpgradeRequiredMessage) String() string            { return proto.CompactTextString(m) }
 func (*UpgradeRequiredMessage) ProtoMessage()               {}
 
-func (m *UpgradeRequiredMessage) GetUpgradeSignedPart() []byte {
-	if m != nil {
-		return m.UpgradeSignedPart
-	}
-	return nil
-}
-
-func (m *UpgradeRequiredMessage) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
-
-func (m *UpgradeRequiredMessage) GetHttpSuffix() string {
-	if m != nil && m.HttpSuffix != nil {
-		return *m.HttpSuffix
-	}
-	return ""
-}
-
 type APLoginFailed struct {
 	ErrorCode        *ErrorCode `protobuf:"varint,10,req,name=error_code,json=errorCode,enum=Spotify.ErrorCode" json:"error_code,omitempty"`
 	RetryDelay       *int32     `protobuf:"varint,20,opt,name=retry_delay,json=retryDelay" json:"retry_delay,omitempty"`
@@ -652,34 +533,6 @@ func (m *APLoginFailed) Reset()                    { *m = APLoginFailed{} }
 func (m *APLoginFailed) String() string            { return proto.CompactTextString(m) }
 func (*APLoginFailed) ProtoMessage()               {}
 
-func (m *APLoginFailed) GetErrorCode() ErrorCode {
-	if m != nil && m.ErrorCode != nil {
-		return *m.ErrorCode
-	}
-	return ErrorCode_ProtocolError
-}
-
-func (m *APLoginFailed) GetRetryDelay() int32 {
-	if m != nil && m.RetryDelay != nil {
-		return *m.RetryDelay
-	}
-	return 0
-}
-
-func (m *APLoginFailed) GetExpiry() int32 {
-	if m != nil && m.Expiry != nil {
-		return *m.Expiry
-	}
-	return 0
-}
-
-func (m *APLoginFailed) GetErrorDescription() string {
-	if m != nil && m.ErrorDescription != nil {
-		return *m.ErrorDescription
-	}
-	return ""
-}
-
 type ClientResponsePlaintext struct {
 	LoginCryptoResponse *LoginCryptoResponseUnion `protobuf:"bytes,10,req,name=login_crypto_response,json=loginCryptoResponse" json:"login_crypto_response,omitempty"`
 	PowResponse         *PoWResponseUnion         `protobuf:"bytes,20,req,name=pow_response,json=powResponse" json:"pow_response,omitempty"`
@@ -691,27 +544,6 @@ func (m *ClientResponsePlaintext) Reset()                    { *m = ClientRespon
 func (m *ClientResponsePlaintext) String() string            { return proto.CompactTextString(m) }
 func (*ClientResponsePlaintext) ProtoMessage()               {}
 
-func (m *ClientResponsePlaintext) GetLoginCryptoResponse() *LoginCryptoResponseUnion {
-	if m != nil {
-		return m.LoginCryptoResponse
-	}
-	return nil
-}
-
-func (m *ClientResponsePlaintext) GetPowResponse() *PoWResponseUnion {
-	if m != nil {
-		return m.PowResponse
-	}
-	return nil
-}
-
-func (m *ClientResponsePlaintext) GetCryptoResponse() *CryptoResponseUnion {
-	if m != nil {
-		return m.CryptoResponse
-	}
-	return nil
-}
-
 type LoginCryptoResponseUnion struct {
 	DiffieHellman    *LoginCryptoDiffieHellmanResponse `protobuf:"bytes,10,opt,name=diffie_hellman,json=diffieHellman" json:"diffie_hellman,omitempty"`
 	XXX_unrecognized []byte                            `json:"-"`
@@ -720,13 +552,6 @@ type LoginCryptoResponseUnion struct {
 func (m *LoginCryptoResponseUnion) Reset()                    { *m = LoginCryptoResponseUnion{} }
 func (m *LoginCryptoResponseUnion) String() string            { return proto.CompactTextString(m) }
 func (*LoginCryptoResponseUnion) ProtoMessage()               {}
-
-func (m *LoginCryptoResponseUnion) GetDiffieHellman() *LoginCryptoDiffieHellmanResponse {
-	if m != nil {
-		return m.DiffieHellman
-	}
-	return nil
-}
 
 type LoginCryptoDiffieHellmanResponse struct {
 	Hmac             []byte `protobuf:"bytes,10,req,name=hmac" json:"hmac,omitempty"`
@@ -737,13 +562,6 @@ func (m *LoginCryptoDiffieHellmanResponse) Reset()         { *m = LoginCryptoDif
 func (m *LoginCryptoDiffieHellmanResponse) String() string { return proto.CompactTextString(m) }
 func (*LoginCryptoDiffieHellmanResponse) ProtoMessage()    {}
 
-func (m *LoginCryptoDiffieHellmanResponse) GetHmac() []byte {
-	if m != nil {
-		return m.Hmac
-	}
-	return nil
-}
-
 type PoWResponseUnion struct {
 	HashCash         *PoWHashCashResponse `protobuf:"bytes,10,opt,name=hash_cash,json=hashCash" json:"hash_cash,omitempty"`
 	XXX_unrecognized []byte               `json:"-"`
@@ -753,13 +571,6 @@ func (m *PoWResponseUnion) Reset()                    { *m = PoWResponseUnion{} 
 func (m *PoWResponseUnion) String() string            { return proto.CompactTextString(m) }
 func (*PoWResponseUnion) ProtoMessage()               {}
 
-func (m *PoWResponseUnion) GetHashCash() *PoWHashCashResponse {
-	if m != nil {
-		return m.HashCash
-	}
-	return nil
-}
-
 type PoWHashCashResponse struct {
 	HashSuffix       []byte `protobuf:"bytes,10,req,name=hash_suffix,json=hashSuffix" json:"hash_suffix,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
@@ -768,13 +579,6 @@ type PoWHashCashResponse struct {
 func (m *PoWHashCashResponse) Reset()                    { *m = PoWHashCashResponse{} }
 func (m *PoWHashCashResponse) String() string            { return proto.CompactTextString(m) }
 func (*PoWHashCashResponse) ProtoMessage()               {}
-
-func (m *PoWHashCashResponse) GetHashSuffix() []byte {
-	if m != nil {
-		return m.HashSuffix
-	}
-	return nil
-}
 
 type CryptoResponseUnion struct {
 	Shannon          *CryptoShannonResponse     `protobuf:"bytes,10,opt,name=shannon" json:"shannon,omitempty"`
@@ -786,20 +590,6 @@ func (m *CryptoResponseUnion) Reset()                    { *m = CryptoResponseUn
 func (m *CryptoResponseUnion) String() string            { return proto.CompactTextString(m) }
 func (*CryptoResponseUnion) ProtoMessage()               {}
 
-func (m *CryptoResponseUnion) GetShannon() *CryptoShannonResponse {
-	if m != nil {
-		return m.Shannon
-	}
-	return nil
-}
-
-func (m *CryptoResponseUnion) GetRc4Sha1Hmac() *CryptoRc4Sha1HmacResponse {
-	if m != nil {
-		return m.Rc4Sha1Hmac
-	}
-	return nil
-}
-
 type CryptoShannonResponse struct {
 	Dummy            *int32 `protobuf:"varint,1,opt,name=dummy" json:"dummy,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
@@ -809,13 +599,6 @@ func (m *CryptoShannonResponse) Reset()                    { *m = CryptoShannonR
 func (m *CryptoShannonResponse) String() string            { return proto.CompactTextString(m) }
 func (*CryptoShannonResponse) ProtoMessage()               {}
 
-func (m *CryptoShannonResponse) GetDummy() int32 {
-	if m != nil && m.Dummy != nil {
-		return *m.Dummy
-	}
-	return 0
-}
-
 type CryptoRc4Sha1HmacResponse struct {
 	Dummy            *int32 `protobuf:"varint,1,opt,name=dummy" json:"dummy,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
@@ -824,13 +607,6 @@ type CryptoRc4Sha1HmacResponse struct {
 func (m *CryptoRc4Sha1HmacResponse) Reset()                    { *m = CryptoRc4Sha1HmacResponse{} }
 func (m *CryptoRc4Sha1HmacResponse) String() string            { return proto.CompactTextString(m) }
 func (*CryptoRc4Sha1HmacResponse) ProtoMessage()               {}
-
-func (m *CryptoRc4Sha1HmacResponse) GetDummy() int32 {
-	if m != nil && m.Dummy != nil {
-		return *m.Dummy
-	}
-	return 0
-}
 
 func init() {
 	proto.RegisterType((*ClientHello)(nil), "Spotify.ClientHello")
