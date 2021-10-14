@@ -16,8 +16,10 @@ func (ses *Session) DownloadTrackID(id string) error {
    addr := "hm://metadata/4/track/" + id
    fmt.Println("GET", addr)
    data := ses.mercury.mercuryGet(addr)
+   // BEGIN
    var trk pb.Track
    err := proto.Unmarshal(data, &trk)
+   // END
    if err != nil {
       return err
    }
