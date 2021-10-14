@@ -23,45 +23,18 @@ const (
 	AudioFile_OTHER5         AudioFile_Format = 13
 )
 
-type TopTracks struct {
-	Country          *string  `protobuf:"bytes,1,opt,name=country" json:"country,omitempty"`
-	Track            []*Track `protobuf:"bytes,2,rep,name=track" json:"track,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
-}
-
-func (m *TopTracks) Reset()                    { *m = TopTracks{} }
-func (m *TopTracks) String() string            { return proto.CompactTextString(m) }
-func (*TopTracks) ProtoMessage()               {}
-
-type ActivityPeriod struct {
-	StartYear        *int32 `protobuf:"zigzag32,1,opt,name=start_year,json=startYear" json:"start_year,omitempty"`
-	EndYear          *int32 `protobuf:"zigzag32,2,opt,name=end_year,json=endYear" json:"end_year,omitempty"`
-	Decade           *int32 `protobuf:"zigzag32,3,opt,name=decade" json:"decade,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
-}
-
-func (m *ActivityPeriod) Reset()                    { *m = ActivityPeriod{} }
-func (m *ActivityPeriod) String() string            { return proto.CompactTextString(m) }
-func (*ActivityPeriod) ProtoMessage()               {}
-
 type Artist struct {
 	Gid                  []byte            `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
 	Name                 *string           `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	Popularity           *int32            `protobuf:"zigzag32,3,opt,name=popularity" json:"popularity,omitempty"`
-	TopTrack             []*TopTracks      `protobuf:"bytes,4,rep,name=top_track,json=topTrack" json:"top_track,omitempty"`
 	AlbumGroup           []*AlbumGroup     `protobuf:"bytes,5,rep,name=album_group,json=albumGroup" json:"album_group,omitempty"`
 	SingleGroup          []*AlbumGroup     `protobuf:"bytes,6,rep,name=single_group,json=singleGroup" json:"single_group,omitempty"`
 	CompilationGroup     []*AlbumGroup     `protobuf:"bytes,7,rep,name=compilation_group,json=compilationGroup" json:"compilation_group,omitempty"`
 	AppearsOnGroup       []*AlbumGroup     `protobuf:"bytes,8,rep,name=appears_on_group,json=appearsOnGroup" json:"appears_on_group,omitempty"`
 	Genre                []string          `protobuf:"bytes,9,rep,name=genre" json:"genre,omitempty"`
 	ExternalId           []*ExternalId     `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
-	Portrait             []*Image          `protobuf:"bytes,11,rep,name=portrait" json:"portrait,omitempty"`
-	Biography            []*Biography      `protobuf:"bytes,12,rep,name=biography" json:"biography,omitempty"`
-	ActivityPeriod       []*ActivityPeriod `protobuf:"bytes,13,rep,name=activity_period,json=activityPeriod" json:"activity_period,omitempty"`
-	Restriction          []*Restriction    `protobuf:"bytes,14,rep,name=restriction" json:"restriction,omitempty"`
 	Related              []*Artist         `protobuf:"bytes,15,rep,name=related" json:"related,omitempty"`
 	IsPortraitAlbumCover *bool             `protobuf:"varint,16,opt,name=is_portrait_album_cover,json=isPortraitAlbumCover" json:"is_portrait_album_cover,omitempty"`
-	PortraitGroup        *ImageGroup       `protobuf:"bytes,17,opt,name=portrait_group,json=portraitGroup" json:"portrait_group,omitempty"`
 	XXX_unrecognized     []byte            `json:"-"`
 }
 
@@ -78,34 +51,16 @@ func (m *AlbumGroup) Reset()                    { *m = AlbumGroup{} }
 func (m *AlbumGroup) String() string            { return proto.CompactTextString(m) }
 func (*AlbumGroup) ProtoMessage()               {}
 
-type Date struct {
-	Year             *int32 `protobuf:"zigzag32,1,opt,name=year" json:"year,omitempty"`
-	Month            *int32 `protobuf:"zigzag32,2,opt,name=month" json:"month,omitempty"`
-	Day              *int32 `protobuf:"zigzag32,3,opt,name=day" json:"day,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
-}
-
-func (m *Date) Reset()                    { *m = Date{} }
-func (m *Date) String() string            { return proto.CompactTextString(m) }
-func (*Date) ProtoMessage()               {}
-
 type Album struct {
 	Gid              []byte         `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
 	Name             *string        `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	Artist           []*Artist      `protobuf:"bytes,3,rep,name=artist" json:"artist,omitempty"`
 	Label            *string        `protobuf:"bytes,5,opt,name=label" json:"label,omitempty"`
-	Date             *Date          `protobuf:"bytes,6,opt,name=date" json:"date,omitempty"`
 	Popularity       *int32         `protobuf:"zigzag32,7,opt,name=popularity" json:"popularity,omitempty"`
 	Genre            []string       `protobuf:"bytes,8,rep,name=genre" json:"genre,omitempty"`
-	Cover            []*Image       `protobuf:"bytes,9,rep,name=cover" json:"cover,omitempty"`
 	ExternalId       []*ExternalId  `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
-	Disc             []*Disc        `protobuf:"bytes,11,rep,name=disc" json:"disc,omitempty"`
 	Review           []string       `protobuf:"bytes,12,rep,name=review" json:"review,omitempty"`
-	Copyright        []*Copyright   `protobuf:"bytes,13,rep,name=copyright" json:"copyright,omitempty"`
-	Restriction      []*Restriction `protobuf:"bytes,14,rep,name=restriction" json:"restriction,omitempty"`
 	Related          []*Album       `protobuf:"bytes,15,rep,name=related" json:"related,omitempty"`
-	SalePeriod       []*SalePeriod  `protobuf:"bytes,16,rep,name=sale_period,json=salePeriod" json:"sale_period,omitempty"`
-	CoverGroup       *ImageGroup    `protobuf:"bytes,17,opt,name=cover_group,json=coverGroup" json:"cover_group,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
 }
 
@@ -124,10 +79,8 @@ type Track struct {
 	Popularity       *int32         `protobuf:"zigzag32,8,opt,name=popularity" json:"popularity,omitempty"`
 	Explicit         *bool          `protobuf:"varint,9,opt,name=explicit" json:"explicit,omitempty"`
 	ExternalId       []*ExternalId  `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
-	Restriction      []*Restriction `protobuf:"bytes,11,rep,name=restriction" json:"restriction,omitempty"`
 	File             []*AudioFile   `protobuf:"bytes,12,rep,name=file" json:"file,omitempty"`
 	Alternative      []*Track       `protobuf:"bytes,13,rep,name=alternative" json:"alternative,omitempty"`
-	SalePeriod       []*SalePeriod  `protobuf:"bytes,14,rep,name=sale_period,json=salePeriod" json:"sale_period,omitempty"`
 	Preview          []*AudioFile   `protobuf:"bytes,15,rep,name=preview" json:"preview,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
 }
@@ -150,79 +103,6 @@ func (m *Track) GetFile() []*AudioFile {
 	return nil
 }
 
-type Image struct {
-	FileId           []byte      `protobuf:"bytes,1,opt,name=file_id,json=fileId" json:"file_id,omitempty"`
-	Width            *int32      `protobuf:"zigzag32,3,opt,name=width" json:"width,omitempty"`
-	Height           *int32      `protobuf:"zigzag32,4,opt,name=height" json:"height,omitempty"`
-	XXX_unrecognized []byte      `json:"-"`
-}
-
-func (m *Image) Reset()                    { *m = Image{} }
-func (m *Image) String() string            { return proto.CompactTextString(m) }
-func (*Image) ProtoMessage()               {}
-
-type ImageGroup struct {
-	Image            []*Image `protobuf:"bytes,1,rep,name=image" json:"image,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
-}
-
-func (m *ImageGroup) Reset()                    { *m = ImageGroup{} }
-func (m *ImageGroup) String() string            { return proto.CompactTextString(m) }
-func (*ImageGroup) ProtoMessage()               {}
-
-type Biography struct {
-	Text             *string       `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
-	Portrait         []*Image      `protobuf:"bytes,2,rep,name=portrait" json:"portrait,omitempty"`
-	PortraitGroup    []*ImageGroup `protobuf:"bytes,3,rep,name=portrait_group,json=portraitGroup" json:"portrait_group,omitempty"`
-	XXX_unrecognized []byte        `json:"-"`
-}
-
-func (m *Biography) Reset()                    { *m = Biography{} }
-func (m *Biography) String() string            { return proto.CompactTextString(m) }
-func (*Biography) ProtoMessage()               {}
-
-type Disc struct {
-	Number           *int32   `protobuf:"zigzag32,1,opt,name=number" json:"number,omitempty"`
-	Name             *string  `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Track            []*Track `protobuf:"bytes,3,rep,name=track" json:"track,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
-}
-
-func (m *Disc) Reset()                    { *m = Disc{} }
-func (m *Disc) String() string            { return proto.CompactTextString(m) }
-func (*Disc) ProtoMessage()               {}
-
-type Copyright struct {
-	Text             *string         `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
-	XXX_unrecognized []byte          `json:"-"`
-}
-
-func (m *Copyright) Reset()                    { *m = Copyright{} }
-func (m *Copyright) String() string            { return proto.CompactTextString(m) }
-func (*Copyright) ProtoMessage()               {}
-
-type Restriction struct {
-	CountriesAllowed   *string           `protobuf:"bytes,2,opt,name=countries_allowed,json=countriesAllowed" json:"countries_allowed,omitempty"`
-	CountriesForbidden *string           `protobuf:"bytes,3,opt,name=countries_forbidden,json=countriesForbidden" json:"countries_forbidden,omitempty"`
-	CatalogueStr       []string          `protobuf:"bytes,5,rep,name=catalogue_str,json=catalogueStr" json:"catalogue_str,omitempty"`
-	XXX_unrecognized   []byte            `json:"-"`
-}
-
-func (m *Restriction) Reset()                    { *m = Restriction{} }
-func (m *Restriction) String() string            { return proto.CompactTextString(m) }
-func (*Restriction) ProtoMessage()               {}
-
-type SalePeriod struct {
-	Restriction      []*Restriction `protobuf:"bytes,1,rep,name=restriction" json:"restriction,omitempty"`
-	Start            *Date          `protobuf:"bytes,2,opt,name=start" json:"start,omitempty"`
-	End              *Date          `protobuf:"bytes,3,opt,name=end" json:"end,omitempty"`
-	XXX_unrecognized []byte         `json:"-"`
-}
-
-func (m *SalePeriod) Reset()                    { *m = SalePeriod{} }
-func (m *SalePeriod) String() string            { return proto.CompactTextString(m) }
-func (*SalePeriod) ProtoMessage()               {}
-
 type ExternalId struct {
 	Typ              *string `protobuf:"bytes,1,opt,name=typ" json:"typ,omitempty"`
 	Id               *string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
@@ -240,18 +120,6 @@ const (
    MercuryReply_CACHE_PRIVATE MercuryReply_CachePolicy = 2
    MercuryReply_CACHE_PUBLIC  MercuryReply_CachePolicy = 3
 )
-
-var MercuryReply_CachePolicy_name = map[int32]string{
-   1: "CACHE_NO",
-   2: "CACHE_PRIVATE",
-   3: "CACHE_PUBLIC",
-}
-
-var MercuryReply_CachePolicy_value = map[string]int32{
-   "CACHE_NO":      1,
-   "CACHE_PRIVATE": 2,
-   "CACHE_PUBLIC":  3,
-}
 
 type MercuryMultiGetRequest struct {
 	Request          []*MercuryRequest `protobuf:"bytes,1,rep,name=request" json:"request,omitempty"`
@@ -297,14 +165,6 @@ type MercuryReply struct {
 func (m *MercuryReply) Reset()                    { *m = MercuryReply{} }
 func (m *MercuryReply) String() string            { return proto.CompactTextString(m) }
 func (*MercuryReply) ProtoMessage()               {}
-
-func init() {
-   proto.RegisterType((*MercuryMultiGetRequest)(nil), "Spotify.MercuryMultiGetRequest")
-   proto.RegisterType((*MercuryMultiGetReply)(nil), "Spotify.MercuryMultiGetReply")
-   proto.RegisterType((*MercuryRequest)(nil), "Spotify.MercuryRequest")
-   proto.RegisterType((*MercuryReply)(nil), "Spotify.MercuryReply")
-   proto.RegisterEnum("Spotify.MercuryReply_CachePolicy", MercuryReply_CachePolicy_name, MercuryReply_CachePolicy_value)
-}
 
 type AudioFile struct {
    FileId           []byte            `protobuf:"bytes,1,opt,name=file_id,json=fileId" json:"file_id,omitempty"`
