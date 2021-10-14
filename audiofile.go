@@ -57,10 +57,10 @@ func (a *audioFile) headerOffset() int {
 const chunkSizeK = 32768
 
 type client struct {
-	subscriptions map[string][]chan response
-	callbacks     map[string]callback
-	inter      *internal
-	cbMu          sync.Mutex
+   callbacks     map[string]callback
+   cbMu          sync.Mutex
+   inter      *internal
+   subscriptions map[string][]chan response
 }
 
 func createMercury(stream packetStream) *client {
