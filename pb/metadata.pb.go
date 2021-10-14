@@ -351,7 +351,6 @@ func (m *Image) Reset()                    { *m = Image{} }
 func (m *Image) String() string            { return proto.CompactTextString(m) }
 func (*Image) ProtoMessage()               {}
 
-
 type ImageGroup struct {
 	Image            []*Image `protobuf:"bytes,1,rep,name=image" json:"image,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
@@ -360,13 +359,6 @@ type ImageGroup struct {
 func (m *ImageGroup) Reset()                    { *m = ImageGroup{} }
 func (m *ImageGroup) String() string            { return proto.CompactTextString(m) }
 func (*ImageGroup) ProtoMessage()               {}
-
-func (m *ImageGroup) GetImage() []*Image {
-	if m != nil {
-		return m.Image
-	}
-	return nil
-}
 
 type Biography struct {
 	Text             *string       `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
@@ -379,27 +371,6 @@ func (m *Biography) Reset()                    { *m = Biography{} }
 func (m *Biography) String() string            { return proto.CompactTextString(m) }
 func (*Biography) ProtoMessage()               {}
 
-func (m *Biography) GetText() string {
-	if m != nil && m.Text != nil {
-		return *m.Text
-	}
-	return ""
-}
-
-func (m *Biography) GetPortrait() []*Image {
-	if m != nil {
-		return m.Portrait
-	}
-	return nil
-}
-
-func (m *Biography) GetPortraitGroup() []*ImageGroup {
-	if m != nil {
-		return m.PortraitGroup
-	}
-	return nil
-}
-
 type Disc struct {
 	Number           *int32   `protobuf:"zigzag32,1,opt,name=number" json:"number,omitempty"`
 	Name             *string  `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
@@ -411,27 +382,6 @@ func (m *Disc) Reset()                    { *m = Disc{} }
 func (m *Disc) String() string            { return proto.CompactTextString(m) }
 func (*Disc) ProtoMessage()               {}
 
-func (m *Disc) GetNumber() int32 {
-	if m != nil && m.Number != nil {
-		return *m.Number
-	}
-	return 0
-}
-
-func (m *Disc) GetName() string {
-	if m != nil && m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-
-func (m *Disc) GetTrack() []*Track {
-	if m != nil {
-		return m.Track
-	}
-	return nil
-}
-
 type Copyright struct {
 	Typ              *Copyright_Type `protobuf:"varint,1,opt,name=typ,enum=Spotify.Copyright_Type" json:"typ,omitempty"`
 	Text             *string         `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
@@ -441,20 +391,6 @@ type Copyright struct {
 func (m *Copyright) Reset()                    { *m = Copyright{} }
 func (m *Copyright) String() string            { return proto.CompactTextString(m) }
 func (*Copyright) ProtoMessage()               {}
-
-func (m *Copyright) GetTyp() Copyright_Type {
-	if m != nil && m.Typ != nil {
-		return *m.Typ
-	}
-	return Copyright_P
-}
-
-func (m *Copyright) GetText() string {
-	if m != nil && m.Text != nil {
-		return *m.Text
-	}
-	return ""
-}
 
 type Restriction struct {
 	CountriesAllowed   *string           `protobuf:"bytes,2,opt,name=countries_allowed,json=countriesAllowed" json:"countries_allowed,omitempty"`
@@ -468,34 +404,6 @@ func (m *Restriction) Reset()                    { *m = Restriction{} }
 func (m *Restriction) String() string            { return proto.CompactTextString(m) }
 func (*Restriction) ProtoMessage()               {}
 
-func (m *Restriction) GetCountriesAllowed() string {
-	if m != nil && m.CountriesAllowed != nil {
-		return *m.CountriesAllowed
-	}
-	return ""
-}
-
-func (m *Restriction) GetCountriesForbidden() string {
-	if m != nil && m.CountriesForbidden != nil {
-		return *m.CountriesForbidden
-	}
-	return ""
-}
-
-func (m *Restriction) GetTyp() Restriction_Type {
-	if m != nil && m.Typ != nil {
-		return *m.Typ
-	}
-	return Restriction_STREAMING
-}
-
-func (m *Restriction) GetCatalogueStr() []string {
-	if m != nil {
-		return m.CatalogueStr
-	}
-	return nil
-}
-
 type SalePeriod struct {
 	Restriction      []*Restriction `protobuf:"bytes,1,rep,name=restriction" json:"restriction,omitempty"`
 	Start            *Date          `protobuf:"bytes,2,opt,name=start" json:"start,omitempty"`
@@ -507,27 +415,6 @@ func (m *SalePeriod) Reset()                    { *m = SalePeriod{} }
 func (m *SalePeriod) String() string            { return proto.CompactTextString(m) }
 func (*SalePeriod) ProtoMessage()               {}
 
-func (m *SalePeriod) GetRestriction() []*Restriction {
-	if m != nil {
-		return m.Restriction
-	}
-	return nil
-}
-
-func (m *SalePeriod) GetStart() *Date {
-	if m != nil {
-		return m.Start
-	}
-	return nil
-}
-
-func (m *SalePeriod) GetEnd() *Date {
-	if m != nil {
-		return m.End
-	}
-	return nil
-}
-
 type ExternalId struct {
 	Typ              *string `protobuf:"bytes,1,opt,name=typ" json:"typ,omitempty"`
 	Id               *string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
@@ -537,20 +424,6 @@ type ExternalId struct {
 func (m *ExternalId) Reset()                    { *m = ExternalId{} }
 func (m *ExternalId) String() string            { return proto.CompactTextString(m) }
 func (*ExternalId) ProtoMessage()               {}
-
-func (m *ExternalId) GetTyp() string {
-	if m != nil && m.Typ != nil {
-		return *m.Typ
-	}
-	return ""
-}
-
-func (m *ExternalId) GetId() string {
-	if m != nil && m.Id != nil {
-		return *m.Id
-	}
-	return ""
-}
 
 type MercuryReply_CachePolicy int32
 
