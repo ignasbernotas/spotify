@@ -232,27 +232,6 @@ func (m *ActivityPeriod) Reset()                    { *m = ActivityPeriod{} }
 func (m *ActivityPeriod) String() string            { return proto.CompactTextString(m) }
 func (*ActivityPeriod) ProtoMessage()               {}
 
-func (m *ActivityPeriod) GetStartYear() int32 {
-	if m != nil && m.StartYear != nil {
-		return *m.StartYear
-	}
-	return 0
-}
-
-func (m *ActivityPeriod) GetEndYear() int32 {
-	if m != nil && m.EndYear != nil {
-		return *m.EndYear
-	}
-	return 0
-}
-
-func (m *ActivityPeriod) GetDecade() int32 {
-	if m != nil && m.Decade != nil {
-		return *m.Decade
-	}
-	return 0
-}
-
 type Artist struct {
 	Gid                  []byte            `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
 	Name                 *string           `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
@@ -287,13 +266,6 @@ func (m *AlbumGroup) Reset()                    { *m = AlbumGroup{} }
 func (m *AlbumGroup) String() string            { return proto.CompactTextString(m) }
 func (*AlbumGroup) ProtoMessage()               {}
 
-func (m *AlbumGroup) GetAlbum() []*Album {
-	if m != nil {
-		return m.Album
-	}
-	return nil
-}
-
 type Date struct {
 	Year             *int32 `protobuf:"zigzag32,1,opt,name=year" json:"year,omitempty"`
 	Month            *int32 `protobuf:"zigzag32,2,opt,name=month" json:"month,omitempty"`
@@ -304,27 +276,6 @@ type Date struct {
 func (m *Date) Reset()                    { *m = Date{} }
 func (m *Date) String() string            { return proto.CompactTextString(m) }
 func (*Date) ProtoMessage()               {}
-
-func (m *Date) GetYear() int32 {
-	if m != nil && m.Year != nil {
-		return *m.Year
-	}
-	return 0
-}
-
-func (m *Date) GetMonth() int32 {
-	if m != nil && m.Month != nil {
-		return *m.Month
-	}
-	return 0
-}
-
-func (m *Date) GetDay() int32 {
-	if m != nil && m.Day != nil {
-		return *m.Day
-	}
-	return 0
-}
 
 type Album struct {
 	Gid              []byte         `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
@@ -400,33 +351,6 @@ func (m *Image) Reset()                    { *m = Image{} }
 func (m *Image) String() string            { return proto.CompactTextString(m) }
 func (*Image) ProtoMessage()               {}
 
-func (m *Image) GetFileId() []byte {
-	if m != nil {
-		return m.FileId
-	}
-	return nil
-}
-
-func (m *Image) GetSize() Image_Size {
-	if m != nil && m.Size != nil {
-		return *m.Size
-	}
-	return Image_DEFAULT
-}
-
-func (m *Image) GetWidth() int32 {
-	if m != nil && m.Width != nil {
-		return *m.Width
-	}
-	return 0
-}
-
-func (m *Image) GetHeight() int32 {
-	if m != nil && m.Height != nil {
-		return *m.Height
-	}
-	return 0
-}
 
 type ImageGroup struct {
 	Image            []*Image `protobuf:"bytes,1,rep,name=image" json:"image,omitempty"`
