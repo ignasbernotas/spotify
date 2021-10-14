@@ -21,26 +21,6 @@ var MercuryReply_CachePolicy_value = map[string]int32{
    "CACHE_PUBLIC":  3,
 }
 
-func (x MercuryReply_CachePolicy) Enum() *MercuryReply_CachePolicy {
-   p := new(MercuryReply_CachePolicy)
-   *p = x
-   return p
-}
-
-func (x MercuryReply_CachePolicy) String() string {
-	return proto.EnumName(MercuryReply_CachePolicy_name, int32(x))
-}
-
-func (x *MercuryReply_CachePolicy) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(MercuryReply_CachePolicy_value, data, "MercuryReply_CachePolicy")
-	if err != nil {
-		return err
-	}
-	*x = MercuryReply_CachePolicy(value)
-	return nil
-}
-func (MercuryReply_CachePolicy) EnumDescriptor() ([]byte, []int) { return fileDescriptor5, []int{3, 0} }
-
 type MercuryMultiGetRequest struct {
 	Request          []*MercuryRequest `protobuf:"bytes,1,rep,name=request" json:"request,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
@@ -51,13 +31,6 @@ func (m *MercuryMultiGetRequest) String() string            { return proto.Compa
 func (*MercuryMultiGetRequest) ProtoMessage()               {}
 func (*MercuryMultiGetRequest) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
 
-func (m *MercuryMultiGetRequest) GetRequest() []*MercuryRequest {
-	if m != nil {
-		return m.Request
-	}
-	return nil
-}
-
 type MercuryMultiGetReply struct {
 	Reply            []*MercuryReply `protobuf:"bytes,1,rep,name=reply" json:"reply,omitempty"`
 	XXX_unrecognized []byte          `json:"-"`
@@ -67,13 +40,6 @@ func (m *MercuryMultiGetReply) Reset()                    { *m = MercuryMultiGet
 func (m *MercuryMultiGetReply) String() string            { return proto.CompactTextString(m) }
 func (*MercuryMultiGetReply) ProtoMessage()               {}
 func (*MercuryMultiGetReply) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
-
-func (m *MercuryMultiGetReply) GetReply() []*MercuryReply {
-	if m != nil {
-		return m.Reply
-	}
-	return nil
-}
 
 type MercuryRequest struct {
 	Uri              *string `protobuf:"bytes,1,opt,name=uri" json:"uri,omitempty"`
@@ -152,19 +118,9 @@ type AudioFile struct {
 }
 
 func (m *AudioFile) Reset()                    { *m = AudioFile{} }
-
 func (m *AudioFile) String() string            { return proto.CompactTextString(m) }
-
 func (*AudioFile) ProtoMessage()               {}
-
 func (*AudioFile) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{15} }
-
-func (m *AudioFile) GetFileId() []byte {
-	if m != nil {
-		return m.FileId
-	}
-	return nil
-}
 
 func (m *AudioFile) GetFormat() AudioFile_Format {
    if m != nil && m.Format != nil {

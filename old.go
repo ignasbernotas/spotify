@@ -9,6 +9,44 @@ import (
    "os"
 )
 
+func (ses *Session) DownloadTrackID(id string) error {
+   b62 := new(big.Int)
+   b62.SetString(id, 62)
+   id = hex.EncodeToString(b62.Bytes())
+   addr := "hm://metadata/4/track/" + id
+   fmt.Println("GET", addr)
+   data := ses.mercury.mercuryGet(addr)
+   var trk pb.Track
+   err := proto.Unmarshal(data, &trk)
+   if err != nil {
+      return err
+   }
+   fSelect, err := getFormat(trk)
+   if err != nil {
+      return err
+   }
+   trackID := trk.GetGid()
+   aFile := newAudioFileWithIdAndFormat(
+      fSelect.FileId,
+      audioFile_OGG_VORBIS_160,
+      ses.player,
+   )
+   // Start loading the audio key
+   if err := aFile.loadKey(trackID); err != nil {
+      return err
+   }
+   // Then start loading the audio itself
+   aFile.loadChunks()
+   file, err := os.Create("file.ogg")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   if _, err := file.ReadFrom(aFile); err != nil {
+      return err
+   }
+   return nil
+}
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
       LoginCredentials: &pb.LoginCredentials{
@@ -184,41 +222,3 @@ func (s *Session) startConnection() error {
    return nil
 }
 
-func (ses *Session) DownloadTrackID(id string) error {
-   b62 := new(big.Int)
-   b62.SetString(id, 62)
-   id = hex.EncodeToString(b62.Bytes())
-   addr := "hm://metadata/4/track/" + id
-   fmt.Println("GET", addr)
-   data := ses.mercury.mercuryGet(addr)
-   var trk pb.Track
-   err := proto.Unmarshal(data, &trk)
-   if err != nil {
-      return err
-   }
-   fSelect, err := getFormat(trk)
-   if err != nil {
-      return err
-   }
-   trackID := trk.GetGid()
-   aFile := newAudioFileWithIdAndFormat(
-      fSelect.FileId,
-      audioFile_OGG_VORBIS_160,
-      ses.player,
-   )
-   // Start loading the audio key
-   if err := aFile.loadKey(trackID); err != nil {
-      return err
-   }
-   // Then start loading the audio itself
-   aFile.loadChunks()
-   file, err := os.Create("file.ogg")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   if _, err := file.ReadFrom(aFile); err != nil {
-      return err
-   }
-   return nil
-}
