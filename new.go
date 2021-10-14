@@ -1,9 +1,48 @@
 package spotify
 
 import (
+   "encoding/binary"
    "github.com/segmentio/encoding/proto"
    "io"
 )
+
+func encodeRequest(seq []byte, req request) ([]byte, error) {
+   buf, err := encodeMercuryHead(
+      seq, 1+uint16(len(req.payload)), 1,
+   )
+   if err != nil {
+      return nil, err
+   }
+   header := Header{
+      ContentType: req.contentType,
+      Method: req.method,
+      URI: req.uri,
+   }
+   hData, err := proto.Marshal(header)
+   if err != nil {
+      return nil, err
+   }
+   // must use uint16
+   err = binary.Write(buf, binary.BigEndian, uint16(len(hData)))
+   if err != nil {
+      return nil, err
+   }
+   _, err = buf.Write(hData)
+   if err != nil {
+      return nil, err
+   }
+   for _, p := range req.payload {
+      err = binary.Write(buf, binary.BigEndian, len(p))
+      if err != nil {
+         return nil, err
+      }
+      _, err = buf.Write(p)
+      if err != nil {
+         return nil, err
+      }
+   }
+   return buf.Bytes(), nil
+}
 
 type Header struct {
    URI string `protobuf:"bytes,1"`

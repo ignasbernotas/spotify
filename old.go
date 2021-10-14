@@ -1,7 +1,6 @@
 package spotify
 
 import (
-   "encoding/binary"
    "encoding/hex"
    "fmt"
    "github.com/89z/spotify/pb"
@@ -9,43 +8,6 @@ import (
    "math/big"
    "os"
 )
-
-func encodeRequest(seq []byte, req request) ([]byte, error) {
-   buf, err := encodeMercuryHead(seq, uint16(1+len(req.payload)), uint8(1))
-   if err != nil {
-      return nil, err
-   }
-   header := &pb.Header{
-      Method: proto.String(req.method),
-      Uri:    proto.String(req.uri),
-   }
-   if req.contentType != "" {
-      header.ContentType = proto.String(req.contentType)
-   }
-   hData, err := proto.Marshal(header)
-   if err != nil {
-      return nil, err
-   }
-   err = binary.Write(buf, binary.BigEndian, uint16(len(hData)))
-   if err != nil {
-      return nil, err
-   }
-   _, err = buf.Write(hData)
-   if err != nil {
-      return nil, err
-   }
-   for _, p := range req.payload {
-      err = binary.Write(buf, binary.BigEndian, uint16(len(p)))
-      if err != nil {
-         return nil, err
-      }
-      _, err = buf.Write(p)
-      if err != nil {
-         return nil, err
-      }
-   }
-   return buf.Bytes(), nil
-}
 
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
@@ -85,7 +47,6 @@ func getFormat(track pb.Track) (*pb.AudioFile, error) {
    msg := "could not find any files of the song in the specified formats"
    return nil, fmt.Errorf(msg)
 }
-
 
 func makeHelloMessage(publicKey []byte, nonce []byte) ([]byte, error) {
    hello := &pb.ClientHello{

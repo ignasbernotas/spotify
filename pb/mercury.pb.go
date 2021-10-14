@@ -181,15 +181,12 @@ func (m *MercuryReply) GetBody() []byte {
 	return nil
 }
 
-
 func init() {
-	proto.RegisterType((*MercuryMultiGetRequest)(nil), "Spotify.MercuryMultiGetRequest")
-	proto.RegisterType((*MercuryMultiGetReply)(nil), "Spotify.MercuryMultiGetReply")
-	proto.RegisterType((*MercuryRequest)(nil), "Spotify.MercuryRequest")
-	proto.RegisterType((*MercuryReply)(nil), "Spotify.MercuryReply")
-	proto.RegisterType((*Header)(nil), "Spotify.Header")
-	proto.RegisterType((*UserField)(nil), "Spotify.UserField")
-	proto.RegisterEnum("Spotify.MercuryReply_CachePolicy", MercuryReply_CachePolicy_name, MercuryReply_CachePolicy_value)
+   proto.RegisterType((*MercuryMultiGetRequest)(nil), "Spotify.MercuryMultiGetRequest")
+   proto.RegisterType((*MercuryMultiGetReply)(nil), "Spotify.MercuryMultiGetReply")
+   proto.RegisterType((*MercuryRequest)(nil), "Spotify.MercuryRequest")
+   proto.RegisterType((*MercuryReply)(nil), "Spotify.MercuryReply")
+   proto.RegisterEnum("Spotify.MercuryReply_CachePolicy", MercuryReply_CachePolicy_name, MercuryReply_CachePolicy_value)
 }
 
 func init() { proto.RegisterFile("mercury.proto", fileDescriptor5) }
