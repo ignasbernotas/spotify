@@ -350,62 +350,6 @@ func (m *ClientHello) Reset()                    { *m = ClientHello{} }
 func (m *ClientHello) String() string            { return proto.CompactTextString(m) }
 func (*ClientHello) ProtoMessage()               {}
 
-func (m *ClientHello) GetBuildInfo() *BuildInfo {
-	if m != nil {
-		return m.BuildInfo
-	}
-	return nil
-}
-
-func (m *ClientHello) GetFingerprintsSupported() []Fingerprint {
-	if m != nil {
-		return m.FingerprintsSupported
-	}
-	return nil
-}
-
-func (m *ClientHello) GetCryptosuitesSupported() []Cryptosuite {
-	if m != nil {
-		return m.CryptosuitesSupported
-	}
-	return nil
-}
-
-func (m *ClientHello) GetPowschemesSupported() []Powscheme {
-	if m != nil {
-		return m.PowschemesSupported
-	}
-	return nil
-}
-
-func (m *ClientHello) GetLoginCryptoHello() *LoginCryptoHelloUnion {
-	if m != nil {
-		return m.LoginCryptoHello
-	}
-	return nil
-}
-
-func (m *ClientHello) GetClientNonce() []byte {
-	if m != nil {
-		return m.ClientNonce
-	}
-	return nil
-}
-
-func (m *ClientHello) GetPadding() []byte {
-	if m != nil {
-		return m.Padding
-	}
-	return nil
-}
-
-func (m *ClientHello) GetFeatureSet() *FeatureSet {
-	if m != nil {
-		return m.FeatureSet
-	}
-	return nil
-}
-
 type BuildInfo struct {
 	Product          *Product       `protobuf:"varint,10,req,name=product,enum=Spotify.Product" json:"product,omitempty"`
 	ProductFlags     []ProductFlags `protobuf:"varint,20,rep,name=product_flags,json=productFlags,enum=Spotify.ProductFlags" json:"product_flags,omitempty"`
@@ -417,34 +361,6 @@ type BuildInfo struct {
 func (m *BuildInfo) Reset()                    { *m = BuildInfo{} }
 func (m *BuildInfo) String() string            { return proto.CompactTextString(m) }
 func (*BuildInfo) ProtoMessage()               {}
-
-func (m *BuildInfo) GetProduct() Product {
-	if m != nil && m.Product != nil {
-		return *m.Product
-	}
-	return Product_PRODUCT_CLIENT
-}
-
-func (m *BuildInfo) GetProductFlags() []ProductFlags {
-	if m != nil {
-		return m.ProductFlags
-	}
-	return nil
-}
-
-func (m *BuildInfo) GetPlatform() Platform {
-	if m != nil && m.Platform != nil {
-		return *m.Platform
-	}
-	return Platform_PLATFORM_WIN32_X86
-}
-
-func (m *BuildInfo) GetVersion() uint64 {
-	if m != nil && m.Version != nil {
-		return *m.Version
-	}
-	return 0
-}
 
 type LoginCryptoHelloUnion struct {
 	DiffieHellman    *LoginCryptoDiffieHellmanHello `protobuf:"bytes,10,opt,name=diffie_hellman,json=diffieHellman" json:"diffie_hellman,omitempty"`
