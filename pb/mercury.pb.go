@@ -120,7 +120,6 @@ type AudioFile struct {
 func (m *AudioFile) Reset()                    { *m = AudioFile{} }
 func (m *AudioFile) String() string            { return proto.CompactTextString(m) }
 func (*AudioFile) ProtoMessage()               {}
-func (*AudioFile) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{15} }
 
 func (m *AudioFile) GetFormat() AudioFile_Format {
    if m != nil && m.Format != nil {
