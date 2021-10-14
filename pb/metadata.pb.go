@@ -221,20 +221,6 @@ func (m *TopTracks) Reset()                    { *m = TopTracks{} }
 func (m *TopTracks) String() string            { return proto.CompactTextString(m) }
 func (*TopTracks) ProtoMessage()               {}
 
-func (m *TopTracks) GetCountry() string {
-	if m != nil && m.Country != nil {
-		return *m.Country
-	}
-	return ""
-}
-
-func (m *TopTracks) GetTrack() []*Track {
-	if m != nil {
-		return m.Track
-	}
-	return nil
-}
-
 type ActivityPeriod struct {
 	StartYear        *int32 `protobuf:"zigzag32,1,opt,name=start_year,json=startYear" json:"start_year,omitempty"`
 	EndYear          *int32 `protobuf:"zigzag32,2,opt,name=end_year,json=endYear" json:"end_year,omitempty"`
@@ -640,30 +626,6 @@ func (m *ExternalId) GetId() string {
 		return *m.Id
 	}
 	return ""
-}
-
-func init() {
-	proto.RegisterType((*TopTracks)(nil), "Spotify.TopTracks")
-	proto.RegisterType((*ActivityPeriod)(nil), "Spotify.ActivityPeriod")
-	proto.RegisterType((*Artist)(nil), "Spotify.Artist")
-	proto.RegisterType((*AlbumGroup)(nil), "Spotify.AlbumGroup")
-	proto.RegisterType((*Date)(nil), "Spotify.Date")
-	proto.RegisterType((*Album)(nil), "Spotify.Album")
-	proto.RegisterType((*Track)(nil), "Spotify.Track")
-	proto.RegisterType((*Image)(nil), "Spotify.Image")
-	proto.RegisterType((*ImageGroup)(nil), "Spotify.ImageGroup")
-	proto.RegisterType((*Biography)(nil), "Spotify.Biography")
-	proto.RegisterType((*Disc)(nil), "Spotify.Disc")
-	proto.RegisterType((*Copyright)(nil), "Spotify.Copyright")
-	proto.RegisterType((*Restriction)(nil), "Spotify.Restriction")
-	proto.RegisterType((*SalePeriod)(nil), "Spotify.SalePeriod")
-	proto.RegisterType((*ExternalId)(nil), "Spotify.ExternalId")
-	proto.RegisterType((*AudioFile)(nil), "Spotify.AudioFile")
-	proto.RegisterEnum("Spotify.Album_Type", Album_Type_name, Album_Type_value)
-	proto.RegisterEnum("Spotify.Image_Size", Image_Size_name, Image_Size_value)
-	proto.RegisterEnum("Spotify.Copyright_Type", Copyright_Type_name, Copyright_Type_value)
-	proto.RegisterEnum("Spotify.Restriction_Type", Restriction_Type_name, Restriction_Type_value)
-	proto.RegisterEnum("Spotify.AudioFile_Format", AudioFile_Format_name, AudioFile_Format_value)
 }
 
 type MercuryReply_CachePolicy int32
