@@ -88,34 +88,6 @@ func (m *MercuryRequest) String() string            { return proto.CompactTextSt
 func (*MercuryRequest) ProtoMessage()               {}
 func (*MercuryRequest) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
 
-func (m *MercuryRequest) GetUri() string {
-	if m != nil && m.Uri != nil {
-		return *m.Uri
-	}
-	return ""
-}
-
-func (m *MercuryRequest) GetContentType() string {
-	if m != nil && m.ContentType != nil {
-		return *m.ContentType
-	}
-	return ""
-}
-
-func (m *MercuryRequest) GetBody() []byte {
-	if m != nil {
-		return m.Body
-	}
-	return nil
-}
-
-func (m *MercuryRequest) GetEtag() []byte {
-	if m != nil {
-		return m.Etag
-	}
-	return nil
-}
-
 type MercuryReply struct {
 	StatusCode       *int32                    `protobuf:"zigzag32,1,opt,name=status_code,json=statusCode" json:"status_code,omitempty"`
 	StatusMessage    *string                   `protobuf:"bytes,2,opt,name=status_message,json=statusMessage" json:"status_message,omitempty"`
@@ -131,55 +103,6 @@ func (m *MercuryReply) Reset()                    { *m = MercuryReply{} }
 func (m *MercuryReply) String() string            { return proto.CompactTextString(m) }
 func (*MercuryReply) ProtoMessage()               {}
 func (*MercuryReply) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
-
-func (m *MercuryReply) GetStatusCode() int32 {
-	if m != nil && m.StatusCode != nil {
-		return *m.StatusCode
-	}
-	return 0
-}
-
-func (m *MercuryReply) GetStatusMessage() string {
-	if m != nil && m.StatusMessage != nil {
-		return *m.StatusMessage
-	}
-	return ""
-}
-
-func (m *MercuryReply) GetCachePolicy() MercuryReply_CachePolicy {
-	if m != nil && m.CachePolicy != nil {
-		return *m.CachePolicy
-	}
-	return MercuryReply_CACHE_NO
-}
-
-func (m *MercuryReply) GetTtl() int32 {
-	if m != nil && m.Ttl != nil {
-		return *m.Ttl
-	}
-	return 0
-}
-
-func (m *MercuryReply) GetEtag() []byte {
-	if m != nil {
-		return m.Etag
-	}
-	return nil
-}
-
-func (m *MercuryReply) GetContentType() string {
-	if m != nil && m.ContentType != nil {
-		return *m.ContentType
-	}
-	return ""
-}
-
-func (m *MercuryReply) GetBody() []byte {
-	if m != nil {
-		return m.Body
-	}
-	return nil
-}
 
 func init() {
    proto.RegisterType((*MercuryMultiGetRequest)(nil), "Spotify.MercuryMultiGetRequest")
