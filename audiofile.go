@@ -64,15 +64,15 @@ type client struct {
 }
 
 func createMercury(stream packetStream) *client {
-	client := &client{
-		callbacks:     make(map[string]callback),
-		subscriptions: make(map[string][]chan response),
-		inter: &internal{
-			Pending: make(map[string]pending),
-			Stream:  stream,
-		},
-	}
-	return client
+   client := &client{
+      callbacks:     make(map[string]callback),
+      inter: &internal{
+         Pending: make(map[string]pending),
+         Stream:  stream,
+      },
+      subscriptions: make(map[string][]chan response),
+   }
+   return client
 }
 
 func (m *client) handle(cmd uint8, reader io.Reader) (err error) {
