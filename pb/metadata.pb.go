@@ -23,62 +23,14 @@ const (
 	AudioFile_OTHER5         AudioFile_Format = 13
 )
 
-type Artist struct {
-	Gid                  []byte            `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
-	Name                 *string           `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Popularity           *int32            `protobuf:"zigzag32,3,opt,name=popularity" json:"popularity,omitempty"`
-	AlbumGroup           []*AlbumGroup     `protobuf:"bytes,5,rep,name=album_group,json=albumGroup" json:"album_group,omitempty"`
-	SingleGroup          []*AlbumGroup     `protobuf:"bytes,6,rep,name=single_group,json=singleGroup" json:"single_group,omitempty"`
-	CompilationGroup     []*AlbumGroup     `protobuf:"bytes,7,rep,name=compilation_group,json=compilationGroup" json:"compilation_group,omitempty"`
-	AppearsOnGroup       []*AlbumGroup     `protobuf:"bytes,8,rep,name=appears_on_group,json=appearsOnGroup" json:"appears_on_group,omitempty"`
-	Genre                []string          `protobuf:"bytes,9,rep,name=genre" json:"genre,omitempty"`
-	ExternalId           []*ExternalId     `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
-	Related              []*Artist         `protobuf:"bytes,15,rep,name=related" json:"related,omitempty"`
-	IsPortraitAlbumCover *bool             `protobuf:"varint,16,opt,name=is_portrait_album_cover,json=isPortraitAlbumCover" json:"is_portrait_album_cover,omitempty"`
-	XXX_unrecognized     []byte            `json:"-"`
-}
-
-func (*Artist) ProtoMessage()               {}
-func (m *Artist) Reset()                    { *m = Artist{} }
-func (m *Artist) String() string            { return proto.CompactTextString(m) }
-
-type AlbumGroup struct {
-	Album            []*Album `protobuf:"bytes,1,rep,name=album" json:"album,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
-}
-
-func (m *AlbumGroup) Reset()                    { *m = AlbumGroup{} }
-func (m *AlbumGroup) String() string            { return proto.CompactTextString(m) }
-func (*AlbumGroup) ProtoMessage()               {}
-
-type Album struct {
-	Gid              []byte         `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
-	Name             *string        `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Artist           []*Artist      `protobuf:"bytes,3,rep,name=artist" json:"artist,omitempty"`
-	Label            *string        `protobuf:"bytes,5,opt,name=label" json:"label,omitempty"`
-	Popularity       *int32         `protobuf:"zigzag32,7,opt,name=popularity" json:"popularity,omitempty"`
-	Genre            []string       `protobuf:"bytes,8,rep,name=genre" json:"genre,omitempty"`
-	ExternalId       []*ExternalId  `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
-	Review           []string       `protobuf:"bytes,12,rep,name=review" json:"review,omitempty"`
-	Related          []*Album       `protobuf:"bytes,15,rep,name=related" json:"related,omitempty"`
-	XXX_unrecognized []byte         `json:"-"`
-}
-
-func (m *Album) Reset()                    { *m = Album{} }
-func (m *Album) String() string            { return proto.CompactTextString(m) }
-func (*Album) ProtoMessage()               {}
-
 type Track struct {
 	Gid              []byte         `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
 	Name             *string        `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Album            *Album         `protobuf:"bytes,3,opt,name=album" json:"album,omitempty"`
-	Artist           []*Artist      `protobuf:"bytes,4,rep,name=artist" json:"artist,omitempty"`
 	Number           *int32         `protobuf:"zigzag32,5,opt,name=number" json:"number,omitempty"`
 	DiscNumber       *int32         `protobuf:"zigzag32,6,opt,name=disc_number,json=discNumber" json:"disc_number,omitempty"`
 	Duration         *int32         `protobuf:"zigzag32,7,opt,name=duration" json:"duration,omitempty"`
 	Popularity       *int32         `protobuf:"zigzag32,8,opt,name=popularity" json:"popularity,omitempty"`
 	Explicit         *bool          `protobuf:"varint,9,opt,name=explicit" json:"explicit,omitempty"`
-	ExternalId       []*ExternalId  `protobuf:"bytes,10,rep,name=external_id,json=externalId" json:"external_id,omitempty"`
 	File             []*AudioFile   `protobuf:"bytes,12,rep,name=file" json:"file,omitempty"`
 	Alternative      []*Track       `protobuf:"bytes,13,rep,name=alternative" json:"alternative,omitempty"`
 	Preview          []*AudioFile   `protobuf:"bytes,15,rep,name=preview" json:"preview,omitempty"`
@@ -102,24 +54,6 @@ func (m *Track) GetFile() []*AudioFile {
 	}
 	return nil
 }
-
-type ExternalId struct {
-	Typ              *string `protobuf:"bytes,1,opt,name=typ" json:"typ,omitempty"`
-	Id               *string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *ExternalId) Reset()                    { *m = ExternalId{} }
-func (m *ExternalId) String() string            { return proto.CompactTextString(m) }
-func (*ExternalId) ProtoMessage()               {}
-
-type MercuryReply_CachePolicy int32
-
-const (
-   MercuryReply_CACHE_NO      MercuryReply_CachePolicy = 1
-   MercuryReply_CACHE_PRIVATE MercuryReply_CachePolicy = 2
-   MercuryReply_CACHE_PUBLIC  MercuryReply_CachePolicy = 3
-)
 
 type MercuryMultiGetRequest struct {
 	Request          []*MercuryRequest `protobuf:"bytes,1,rep,name=request" json:"request,omitempty"`
@@ -154,7 +88,6 @@ func (*MercuryRequest) ProtoMessage()               {}
 type MercuryReply struct {
 	StatusCode       *int32                    `protobuf:"zigzag32,1,opt,name=status_code,json=statusCode" json:"status_code,omitempty"`
 	StatusMessage    *string                   `protobuf:"bytes,2,opt,name=status_message,json=statusMessage" json:"status_message,omitempty"`
-	CachePolicy      *MercuryReply_CachePolicy `protobuf:"varint,3,opt,name=cache_policy,json=cachePolicy,enum=Spotify.MercuryReply_CachePolicy" json:"cache_policy,omitempty"`
 	Ttl              *int32                    `protobuf:"zigzag32,4,opt,name=ttl" json:"ttl,omitempty"`
 	Etag             []byte                    `protobuf:"bytes,5,opt,name=etag" json:"etag,omitempty"`
 	ContentType      *string                   `protobuf:"bytes,6,opt,name=content_type,json=contentType" json:"content_type,omitempty"`
