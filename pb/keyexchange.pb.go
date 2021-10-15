@@ -11,36 +11,10 @@ const (
 	Product_PRODUCT_LIBSPOTIFY_EMBEDDED Product = 5
 )
 
-var Product_name = map[int32]string{
-	0: "PRODUCT_CLIENT",
-	1: "PRODUCT_LIBSPOTIFY",
-	2: "PRODUCT_MOBILE",
-	3: "PRODUCT_PARTNER",
-	5: "PRODUCT_LIBSPOTIFY_EMBEDDED",
-}
-var Product_value = map[string]int32{
-	"PRODUCT_CLIENT":              0,
-	"PRODUCT_LIBSPOTIFY":          1,
-	"PRODUCT_MOBILE":              2,
-	"PRODUCT_PARTNER":             3,
-	"PRODUCT_LIBSPOTIFY_EMBEDDED": 5,
-}
-
 func (x Product) Enum() *Product {
 	p := new(Product)
 	*p = x
 	return p
-}
-func (x Product) String() string {
-	return proto.EnumName(Product_name, int32(x))
-}
-func (x *Product) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Product_value, data, "Product")
-	if err != nil {
-		return err
-	}
-	*x = Product(value)
-	return nil
 }
 
 type ProductFlags int32
@@ -50,30 +24,10 @@ const (
 	ProductFlags_PRODUCT_FLAG_DEV_BUILD ProductFlags = 1
 )
 
-var ProductFlags_name = map[int32]string{
-	0: "PRODUCT_FLAG_NONE",
-	1: "PRODUCT_FLAG_DEV_BUILD",
-}
-var ProductFlags_value = map[string]int32{
-	"PRODUCT_FLAG_NONE":      0,
-	"PRODUCT_FLAG_DEV_BUILD": 1,
-}
-
 func (x ProductFlags) Enum() *ProductFlags {
 	p := new(ProductFlags)
 	*p = x
 	return p
-}
-func (x ProductFlags) String() string {
-	return proto.EnumName(ProductFlags_name, int32(x))
-}
-func (x *ProductFlags) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(ProductFlags_value, data, "ProductFlags")
-	if err != nil {
-		return err
-	}
-	*x = ProductFlags(value)
-	return nil
 }
 
 type Platform int32
@@ -105,74 +59,10 @@ const (
 	Platform_PLATFORM_BCO_ARM        Platform = 23
 )
 
-var Platform_name = map[int32]string{
-	0:  "PLATFORM_WIN32_X86",
-	1:  "PLATFORM_OSX_X86",
-	2:  "PLATFORM_LINUX_X86",
-	3:  "PLATFORM_IPHONE_ARM",
-	4:  "PLATFORM_S60_ARM",
-	5:  "PLATFORM_OSX_PPC",
-	6:  "PLATFORM_ANDROID_ARM",
-	7:  "PLATFORM_WINDOWS_CE_ARM",
-	8:  "PLATFORM_LINUX_X86_64",
-	9:  "PLATFORM_OSX_X86_64",
-	10: "PLATFORM_PALM_ARM",
-	11: "PLATFORM_LINUX_SH",
-	12: "PLATFORM_FREEBSD_X86",
-	13: "PLATFORM_FREEBSD_X86_64",
-	14: "PLATFORM_BLACKBERRY_ARM",
-	15: "PLATFORM_SONOS",
-	16: "PLATFORM_LINUX_MIPS",
-	17: "PLATFORM_LINUX_ARM",
-	18: "PLATFORM_LOGITECH_ARM",
-	19: "PLATFORM_LINUX_BLACKFIN",
-	20: "PLATFORM_WP7_ARM",
-	21: "PLATFORM_ONKYO_ARM",
-	22: "PLATFORM_QNXNTO_ARM",
-	23: "PLATFORM_BCO_ARM",
-}
-var Platform_value = map[string]int32{
-	"PLATFORM_WIN32_X86":      0,
-	"PLATFORM_OSX_X86":        1,
-	"PLATFORM_LINUX_X86":      2,
-	"PLATFORM_IPHONE_ARM":     3,
-	"PLATFORM_S60_ARM":        4,
-	"PLATFORM_OSX_PPC":        5,
-	"PLATFORM_ANDROID_ARM":    6,
-	"PLATFORM_WINDOWS_CE_ARM": 7,
-	"PLATFORM_LINUX_X86_64":   8,
-	"PLATFORM_OSX_X86_64":     9,
-	"PLATFORM_PALM_ARM":       10,
-	"PLATFORM_LINUX_SH":       11,
-	"PLATFORM_FREEBSD_X86":    12,
-	"PLATFORM_FREEBSD_X86_64": 13,
-	"PLATFORM_BLACKBERRY_ARM": 14,
-	"PLATFORM_SONOS":          15,
-	"PLATFORM_LINUX_MIPS":     16,
-	"PLATFORM_LINUX_ARM":      17,
-	"PLATFORM_LOGITECH_ARM":   18,
-	"PLATFORM_LINUX_BLACKFIN": 19,
-	"PLATFORM_WP7_ARM":        20,
-	"PLATFORM_ONKYO_ARM":      21,
-	"PLATFORM_QNXNTO_ARM":     22,
-	"PLATFORM_BCO_ARM":        23,
-}
-
 func (x Platform) Enum() *Platform {
 	p := new(Platform)
 	*p = x
 	return p
-}
-func (x Platform) String() string {
-	return proto.EnumName(Platform_name, int32(x))
-}
-func (x *Platform) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Platform_value, data, "Platform")
-	if err != nil {
-		return err
-	}
-	*x = Platform(value)
-	return nil
 }
 
 type Fingerprint int32
@@ -182,32 +72,11 @@ const (
 	Fingerprint_FINGERPRINT_HMAC_RIPEMD Fingerprint = 1
 )
 
-var Fingerprint_name = map[int32]string{
-	0: "FINGERPRINT_GRAIN",
-	1: "FINGERPRINT_HMAC_RIPEMD",
-}
-var Fingerprint_value = map[string]int32{
-	"FINGERPRINT_GRAIN":       0,
-	"FINGERPRINT_HMAC_RIPEMD": 1,
-}
-
 func (x Fingerprint) Enum() *Fingerprint {
 	p := new(Fingerprint)
 	*p = x
 	return p
 }
-func (x Fingerprint) String() string {
-	return proto.EnumName(Fingerprint_name, int32(x))
-}
-func (x *Fingerprint) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Fingerprint_value, data, "Fingerprint")
-	if err != nil {
-		return err
-	}
-	*x = Fingerprint(value)
-	return nil
-}
-
 
 type Cryptosuite int32
 
@@ -216,32 +85,10 @@ const (
    Cryptosuite_CRYPTO_SUITE_RC4_SHA1_HMAC Cryptosuite = 1
 )
 
-var Cryptosuite_name = map[int32]string{
-   0: "CRYPTO_SUITE_SHANNON",
-   1: "CRYPTO_SUITE_RC4_SHA1_HMAC",
-}
-
-var Cryptosuite_value = map[string]int32{
-   "CRYPTO_SUITE_SHANNON":       0,
-   "CRYPTO_SUITE_RC4_SHA1_HMAC": 1,
-}
-
 func (x Cryptosuite) Enum() *Cryptosuite {
 	p := new(Cryptosuite)
 	*p = x
 	return p
-}
-
-func (x Cryptosuite) String() string {
-	return proto.EnumName(Cryptosuite_name, int32(x))
-}
-func (x *Cryptosuite) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Cryptosuite_value, data, "Cryptosuite")
-	if err != nil {
-		return err
-	}
-	*x = Cryptosuite(value)
-	return nil
 }
 
 type Powscheme int32
@@ -250,28 +97,10 @@ const (
 	Powscheme_POW_HASH_CASH Powscheme = 0
 )
 
-var Powscheme_name = map[int32]string{
-	0: "POW_HASH_CASH",
-}
-var Powscheme_value = map[string]int32{
-	"POW_HASH_CASH": 0,
-}
-
 func (x Powscheme) Enum() *Powscheme {
 	p := new(Powscheme)
 	*p = x
 	return p
-}
-func (x Powscheme) String() string {
-	return proto.EnumName(Powscheme_name, int32(x))
-}
-func (x *Powscheme) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Powscheme_value, data, "Powscheme")
-	if err != nil {
-		return err
-	}
-	*x = Powscheme(value)
-	return nil
 }
 
 type ErrorCode int32
@@ -290,48 +119,10 @@ const (
 	ErrorCode_ApplicationBanned           ErrorCode = 17
 )
 
-var ErrorCode_name = map[int32]string{
-	0:  "ProtocolError",
-	2:  "TryAnotherAP",
-	5:  "BadConnectionId",
-	9:  "TravelRestriction",
-	11: "PremiumAccountRequired",
-	12: "BadCredentials",
-	13: "CouldNotValidateCredentials",
-	14: "AccountExists",
-	15: "ExtraVerificationRequired",
-	16: "InvalidAppKey",
-	17: "ApplicationBanned",
-}
-var ErrorCode_value = map[string]int32{
-	"ProtocolError":               0,
-	"TryAnotherAP":                2,
-	"BadConnectionId":             5,
-	"TravelRestriction":           9,
-	"PremiumAccountRequired":      11,
-	"BadCredentials":              12,
-	"CouldNotValidateCredentials": 13,
-	"AccountExists":               14,
-	"ExtraVerificationRequired":   15,
-	"InvalidAppKey":               16,
-	"ApplicationBanned":           17,
-}
-
 func (x ErrorCode) Enum() *ErrorCode {
 	p := new(ErrorCode)
 	*p = x
 	return p
-}
-func (x ErrorCode) String() string {
-	return proto.EnumName(ErrorCode_name, int32(x))
-}
-func (x *ErrorCode) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(ErrorCode_value, data, "ErrorCode")
-	if err != nil {
-		return err
-	}
-	*x = ErrorCode(value)
-	return nil
 }
 
 type ClientHello struct {
@@ -607,5 +398,3 @@ type CryptoRc4Sha1HmacResponse struct {
 func (m *CryptoRc4Sha1HmacResponse) Reset()                    { *m = CryptoRc4Sha1HmacResponse{} }
 func (m *CryptoRc4Sha1HmacResponse) String() string            { return proto.CompactTextString(m) }
 func (*CryptoRc4Sha1HmacResponse) ProtoMessage()               {}
-
-
