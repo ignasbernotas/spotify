@@ -1,54 +1,11 @@
 package spotify
 
 import (
-   "encoding/hex"
    "fmt"
    "github.com/89z/spotify/pb"
    "github.com/golang/protobuf/proto"
-   "math/big"
-   "os"
 )
 
-func (ses *Session) DownloadTrackID(id string) error {
-   b62 := new(big.Int)
-   b62.SetString(id, 62)
-   id = hex.EncodeToString(b62.Bytes())
-   addr := "hm://metadata/4/track/" + id
-   fmt.Println("GET", addr)
-   data := ses.mercury.mercuryGet(addr)
-   // BEGIN
-   var trk pb.Track
-   err := proto.Unmarshal(data, &trk)
-   // END
-   if err != nil {
-      return err
-   }
-   fSelect, err := getFormat(trk)
-   if err != nil {
-      return err
-   }
-   trackID := trk.GetGid()
-   aFile := newAudioFileWithIdAndFormat(
-      fSelect.FileId,
-      audioFile_OGG_VORBIS_160,
-      ses.player,
-   )
-   // Start loading the audio key
-   if err := aFile.loadKey(trackID); err != nil {
-      return err
-   }
-   // Then start loading the audio itself
-   aFile.loadChunks()
-   file, err := os.Create("file.ogg")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   if _, err := file.ReadFrom(aFile); err != nil {
-      return err
-   }
-   return nil
-}
 func makeLoginBlobPacket(username string, authData []byte, authType *pb.AuthenticationType, deviceId string) ([]byte, error) {
    packet := &pb.ClientResponseEncrypted{
       LoginCredentials: &pb.LoginCredentials{
@@ -78,15 +35,6 @@ func makeLoginBlobPacket(username string, authData []byte, authType *pb.Authenti
    return proto.Marshal(packet)
 }
 
-func getFormat(track pb.Track) (*pb.AudioFile, error) {
-   for _, file := range track.GetFile() {
-      if file.GetFormat() == audioFile_OGG_VORBIS_160 {
-         return file, nil
-      }
-   }
-   msg := "could not find any files of the song in the specified formats"
-   return nil, fmt.Errorf(msg)
-}
 
 func makeHelloMessage(publicKey []byte, nonce []byte) ([]byte, error) {
    hello := &pb.ClientHello{

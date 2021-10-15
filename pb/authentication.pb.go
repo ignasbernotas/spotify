@@ -1,6 +1,8 @@
 package pb
 
-import "github.com/golang/protobuf/proto"
+import (
+   "github.com/golang/protobuf/proto"
+)
 
 type AuthenticationType int32
 
@@ -364,3 +366,47 @@ type AccountInfoFacebook struct {
 func (m *AccountInfoFacebook) Reset()                    { *m = AccountInfoFacebook{} }
 func (m *AccountInfoFacebook) String() string            { return proto.CompactTextString(m) }
 func (*AccountInfoFacebook) ProtoMessage()               {}
+
+type MercuryMultiGetRequest struct {
+	Request          []*MercuryRequest `protobuf:"bytes,1,rep,name=request" json:"request,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *MercuryMultiGetRequest) Reset()                    { *m = MercuryMultiGetRequest{} }
+func (m *MercuryMultiGetRequest) String() string            { return proto.CompactTextString(m) }
+func (*MercuryMultiGetRequest) ProtoMessage()               {}
+
+type MercuryMultiGetReply struct {
+	Reply            []*MercuryReply `protobuf:"bytes,1,rep,name=reply" json:"reply,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *MercuryMultiGetReply) Reset()                    { *m = MercuryMultiGetReply{} }
+func (m *MercuryMultiGetReply) String() string            { return proto.CompactTextString(m) }
+func (*MercuryMultiGetReply) ProtoMessage()               {}
+
+type MercuryRequest struct {
+	Uri              *string `protobuf:"bytes,1,opt,name=uri" json:"uri,omitempty"`
+	ContentType      *string `protobuf:"bytes,2,opt,name=content_type,json=contentType" json:"content_type,omitempty"`
+	Body             []byte  `protobuf:"bytes,3,opt,name=body" json:"body,omitempty"`
+	Etag             []byte  `protobuf:"bytes,4,opt,name=etag" json:"etag,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *MercuryRequest) Reset()                    { *m = MercuryRequest{} }
+func (m *MercuryRequest) String() string            { return proto.CompactTextString(m) }
+func (*MercuryRequest) ProtoMessage()               {}
+
+type MercuryReply struct {
+	StatusCode       *int32                    `protobuf:"zigzag32,1,opt,name=status_code,json=statusCode" json:"status_code,omitempty"`
+	StatusMessage    *string                   `protobuf:"bytes,2,opt,name=status_message,json=statusMessage" json:"status_message,omitempty"`
+	Ttl              *int32                    `protobuf:"zigzag32,4,opt,name=ttl" json:"ttl,omitempty"`
+	Etag             []byte                    `protobuf:"bytes,5,opt,name=etag" json:"etag,omitempty"`
+	ContentType      *string                   `protobuf:"bytes,6,opt,name=content_type,json=contentType" json:"content_type,omitempty"`
+	Body             []byte                    `protobuf:"bytes,7,opt,name=body" json:"body,omitempty"`
+	XXX_unrecognized []byte                    `json:"-"`
+}
+
+func (m *MercuryReply) Reset()                    { *m = MercuryReply{} }
+func (m *MercuryReply) String() string            { return proto.CompactTextString(m) }
+func (*MercuryReply) ProtoMessage()               {}
