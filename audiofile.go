@@ -143,14 +143,13 @@ type player struct {
 }
 
 func createPlayer(conn packetStream, client *client) *player {
-	return &player{
-		stream:   conn,
-		mercury:  client,
-		channels: map[uint16]*channel{},
-		seqChans: sync.Map{},
-		chanLock: sync.Mutex{},
-		nextChan: 0,
-	}
+   return &player{
+      chanLock: sync.Mutex{},
+      channels: map[uint16]*channel{},
+      mercury:  client,
+      seqChans: sync.Map{},
+      stream:   conn,
+   }
 }
 
 func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
