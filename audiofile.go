@@ -167,34 +167,30 @@ func (p *player) loadTrackKey(trackId []byte, fileId []byte) ([]byte, error) {
 }
 
 func (p *player) handleCmd(cmd byte, data []byte) {
-	switch {
-	case cmd == packetAesKey:
-		dataReader := bytes.NewReader(data)
-		var seqNum uint32
-		binary.Read(dataReader, binary.BigEndian, &seqNum)
-
-		if channel, ok := p.seqChans.Load(seqNum); ok {
-			channel.(chan []byte) <- data[4:20]
-		} else {
-			fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
-		}
-
-	case cmd == packetAesKeyError:
-		// Audio key error
-		fmt.Println("[player] Audio key error!")
-		fmt.Printf("%x\n", data)
-
-	case cmd == packetStreamChunkRes:
-		var channel uint16
-		dataReader := bytes.NewReader(data)
-		binary.Read(dataReader, binary.BigEndian, &channel)
-
-		if val, ok := p.channels[channel]; ok {
-			val.handlePacket(data[2:])
-		} else {
-			fmt.Printf("Unknown channel!\n")
-		}
-	}
+   switch {
+   case cmd == packetAesKey:
+      dataReader := bytes.NewReader(data)
+      var seqNum uint32
+      binary.Read(dataReader, binary.BigEndian, &seqNum)
+      if channel, ok := p.seqChans.Load(seqNum); ok {
+         channel.(chan []byte) <- data[4:20]
+      } else {
+         fmt.Printf("[player] Unknown channel for audio key seqNum %d\n", seqNum)
+      }
+   case cmd == packetAesKeyError:
+      // Audio key error
+      fmt.Println("[player] Audio key error!")
+      fmt.Printf("%x\n", data)
+   case cmd == packetStreamChunkRes:
+      var channel uint16
+      dataReader := bytes.NewReader(data)
+      binary.Read(dataReader, binary.BigEndian, &channel)
+      if val, ok := p.channels[channel]; ok {
+         val.handlePacket(data[2:])
+      } else {
+         fmt.Printf("Unknown channel!\n")
+      }
+   }
 }
 
 func (p *player) releaseChannel(channel *channel) {
