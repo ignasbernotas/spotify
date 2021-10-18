@@ -194,9 +194,9 @@ func (p *player) handleCmd(cmd byte, data []byte) {
 }
 
 func (p *player) releaseChannel(channel *channel) {
-	p.chanLock.Lock()
-	delete(p.channels, channel.Num)
-	p.chanLock.Unlock()
+   p.chanLock.Lock()
+   delete(p.channels, channel.Num)
+   p.chanLock.Unlock()
 }
 
 func (a *audioFile) Read(buf []byte) (int, error) {
