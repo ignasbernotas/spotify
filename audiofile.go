@@ -261,11 +261,10 @@ func (a *audioFile) chunkIndexAtByte(byteIndex int) int {
 }
 
 func (a *audioFile) hasChunk(index int) bool {
-	a.chunkLock.RLock()
-	has, ok := a.chunks[index]
-	a.chunkLock.RUnlock()
-
-	return has && ok
+   a.chunkLock.RLock()
+   has, ok := a.chunks[index]
+   a.chunkLock.RUnlock()
+   return has && ok
 }
 
 func (a *audioFile) loadKey(trackId []byte) error {
