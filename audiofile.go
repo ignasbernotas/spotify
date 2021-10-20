@@ -268,18 +268,13 @@ func (a *audioFile) hasChunk(index int) bool {
 }
 
 func (a *audioFile) loadKey(trackId []byte) error {
-	key, err := a.player.loadTrackKey(trackId, a.fileId)
-	if err != nil {
-		fmt.Printf("[audiofile] Unable to load key: %s\n", err)
-		return err
-	}
-
-	a.cipher, err = aes.NewCipher(key)
-	if err != nil {
-		return err
-	}
-
-	return nil
+   key, err := a.player.loadTrackKey(trackId, a.fileId)
+   if err != nil {
+      fmt.Printf("[audiofile] Unable to load key: %s\n", err)
+      return err
+   }
+   a.cipher, err = aes.NewCipher(key)
+   return err
 }
 
 func (a *audioFile) totalChunks() int {
